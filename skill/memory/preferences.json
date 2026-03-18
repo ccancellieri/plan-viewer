@@ -1,0 +1,16 @@
+{
+  "interests": ["musica live", "giochi da tavolo", "cultura", "festival", "eventi gratuiti"],
+  "music_genres": ["blues", "taranta", "jazz", "rock"],
+  "budget": "gratis o low-cost",
+  "preferred_times": {
+    "daytime": "dopo le 12:00",
+    "evening": "qualsiasi orario"
+  },
+  "transport": {
+    "mode": ["bicicletta", "a piedi"],
+    "max_distance_km": 4
+  },
+  "languages": ["italiano", "english"],
+  "avoid": [],
+  "notes": "Preferisce attività vicino a zona San Giovanni / Appio Latino, Roma. Interessi musicali molto marcati, in particolare blues e taranta. Aperto a scoprire cose nuove. Vuole sempre la mappa interattiva come output."
+}

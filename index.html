@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#667eea">
+<link rel="manifest" href="manifest.json">
+<title>Plan Viewer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5; min-height: 100vh;
+}
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 40px 20px 20px; text-align: center;
+}
+.header h1 { font-size: 28px; font-weight: 700; }
+.header p { font-size: 14px; opacity: 0.85; margin-top: 6px; }
+.search-bar {
+  padding: 12px 16px; background: white; border-bottom: 1px solid #eee;
+  position: sticky; top: 0; z-index: 100; max-width: 600px; margin: 0 auto;
+}
+.search-input {
+  width: 100%; padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 12px;
+  font-size: 15px; outline: none; transition: border-color 0.2s; font-family: inherit;
+}
+.search-input:focus { border-color: #667eea; }
+.search-input::placeholder { color: #aaa; }
+.city-chips {
+  display: flex; gap: 6px; padding: 10px 16px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; max-width: 600px; margin: 0 auto;
+}
+.chip {
+  display: inline-block; padding: 6px 14px; border-radius: 20px;
+  font-size: 13px; border: 1.5px solid #ddd; background: white;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s;
+}
+.chip.active { background: #667eea; color: white; border-color: #667eea; }
+.maps-grid { padding: 12px 16px; max-width: 600px; margin: 0 auto; }
+.map-card {
+  background: white; border-radius: 16px; padding: 16px 18px;
+  margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  text-decoration: none; color: inherit; display: block; transition: transform 0.15s;
+}
+.map-card:active { transform: scale(0.98); }
+.map-card h2 { font-size: 16px; color: #333; margin-bottom: 4px; }
+.map-card .meta { font-size: 13px; color: #888; line-height: 1.5; }
+.badge {
+  display: inline-block; background: #667eea; color: white;
+  padding: 2px 8px; border-radius: 10px; font-size: 11px; margin: 2px 2px 0 0;
+}
+.empty { text-align: center; padding: 60px 20px; color: #aaa; }
+.empty .icon { font-size: 48px; margin-bottom: 12px; }
+.count { font-size: 12px; color: #999; text-align: center; padding: 8px; }
+.tip {
+  background: #fff3cd; border-radius: 12px; padding: 12px 16px;
+  margin: 16px auto; font-size: 13px; color: #856404; max-width: 568px;
+}
+.tip strong { display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🗺️ Plan Viewer</h1>
+  <p>Le mie mappe di attivita e tempo libero</p>
+</div>
+
+<div class="search-bar">
+  <input class="search-input" type="text" placeholder="🔍 Cerca per citta o periodo..." id="search" oninput="filterMaps()">
+</div>
+<div class="city-chips" id="chips"></div>
+<div class="count" id="count"></div>
+<div class="maps-grid" id="maps"></div>
+
+<div class="tip" id="tip">
+  <strong>Aggiungi alla Home Screen:</strong>
+  In Safari tocca 📤 poi "Aggiungi alla schermata Home".
+</div>
+
+<script>
+let MAPS = [];
+let activeCity = null;
+
+fetch('maps/registry.json')
+  .then(r => r.json())
+  .then(data => {
+    MAPS = data.sort((a, b) => b.date_start.localeCompare(a.date_start));
+    buildCityChips();
+    filterMaps();
+    if (window.matchMedia('(display-mode: standalone)').matches)
+      document.getElementById('tip').style.display = 'none';
+  })
+  .catch(() => {
+    document.getElementById('maps').innerHTML =
+      '<div class="empty"><div class="icon">🗺️</div><p>Nessuna mappa ancora.<br>Chiedi a Claude di pianificare il tuo prossimo weekend!</p></div>';
+  });
+
+function buildCityChips() {
+  const cities = [...new Set(MAPS.map(m => m.city))].sort();
+  const container = document.getElementById('chips');
+  const allChip = document.createElement('span');
+  allChip.className = 'chip active';
+  allChip.textContent = 'Tutte';
+  allChip.onclick = () => { activeCity = null; updateChips(); filterMaps(); };
+  container.appendChild(allChip);
+  cities.forEach(city => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = city;
+    chip.dataset.city = city;
+    chip.onclick = () => { activeCity = activeCity === city ? null : city; updateChips(); filterMaps(); };
+    container.appendChild(chip);
+  });
+}
+
+function updateChips() {
+  document.querySelectorAll('.chip').forEach(c => {
+    if (!c.dataset.city) c.classList.toggle('active', !activeCity);
+    else c.classList.toggle('active', c.dataset.city === activeCity);
+  });
+}
+
+function filterMaps() {
+  const query = (document.getElementById('search').value || '').toLowerCase();
+  const container = document.getElementById('maps');
+  container.innerHTML = '';
+  const filtered = MAPS.filter(m => {
+    if (activeCity && m.city !== activeCity) return false;
+    if (query) {
+      const hay = (m.title + ' ' + m.city + ' ' + m.location + ' ' + m.date_label + ' ' + (m.categories || []).join(' ')).toLowerCase();
+      return hay.includes(query);
+    }
+    return true;
+  });
+  document.getElementById('count').textContent =
+    filtered.length + ' mapp' + (filtered.length === 1 ? 'a' : 'e') +
+    (MAPS.length !== filtered.length ? ' su ' + MAPS.length : '');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="icon">🔍</div><p>Nessuna mappa trovata.</p></div>';
+    return;
+  }
+  filtered.forEach(m => {
+    const card = document.createElement('a');
+    card.className = 'map-card';
+    card.href = 'maps/' + m.file;
+    card.innerHTML =
+      '<h2>' + m.title + '</h2>' +
+      '<div class="meta">📍 ' + m.location + '<br>📅 ' + m.date_label + '<br>🎯 ' + m.activities + ' attivita</div>' +
+      '<div style="margin-top:6px">' + (m.categories || []).map(c => '<span class="badge">' + c + '</span>').join('') + '</div>';
+    container.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>

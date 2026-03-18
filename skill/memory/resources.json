@@ -1,0 +1,20 @@
+{
+  "global": [
+    {"url": "eventbrite.com", "type": "events", "reliability": "high"},
+    {"url": "meetup.com", "type": "board_games", "reliability": "high"},
+    {"url": "songkick.com", "type": "concerts", "reliability": "high"}
+  ],
+  "by_city": {
+    "Roma": [
+      {"url": "romatoday.it/eventi", "type": "events_aggregator", "reliability": "high", "notes": "Best general events source for Rome"},
+      {"url": "romeing.it", "type": "events_english", "reliability": "high"},
+      {"url": "culture.roma.it", "type": "official_culture", "reliability": "high"},
+      {"url": "concertiaroma.com", "type": "live_music", "reliability": "medium"},
+      {"url": "cosafarearoma.it", "type": "guides", "reliability": "medium"},
+      {"url": "zero.eu/roma", "type": "nightlife", "reliability": "medium"},
+      {"url": "auditorium.com", "type": "concerts_venue", "reliability": "high"},
+      {"url": "elegancecafe.it", "type": "jazz", "reliability": "high"},
+      {"url": "fondoambiente.it", "type": "heritage_events", "reliability": "high", "notes": "Giornate FAI - seasonal"}
+    ]
+  }
+}
