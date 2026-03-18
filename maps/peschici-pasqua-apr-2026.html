@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#667eea">
+<link rel="manifest" href="../manifest.json">
+<title>Peschici - Pasqua 3-5 Aprile 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 16px 20px; position: sticky; top: 0; z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.header h1 { font-size: 18px; font-weight: 600; }
+.header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+.tabs {
+  display: flex; background: white; border-bottom: 2px solid #eee;
+  position: sticky; top: 60px; z-index: 999;
+}
+.tab {
+  flex: 1; text-align: center; padding: 12px; cursor: pointer;
+  font-size: 14px; font-weight: 500; color: #666; transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+.tab.active { color: #667eea; border-bottom-color: #667eea; }
+
+#map { height: 55vh; min-height: 300px; }
+
+.filters {
+  padding: 10px 16px; background: white; border-bottom: 1px solid #eee;
+  display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: 20px; font-size: 12px;
+  border: 1.5px solid #ddd; background: white; cursor: pointer;
+  white-space: nowrap; transition: all 0.2s;
+}
+.filter-chip.active { border-color: #667eea; background: #667eea; color: white; }
+.filter-chip .dot {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+}
+
+.cards { padding: 12px; display: none; }
+.card {
+  background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1); position: relative;
+}
+.card-cat {
+  position: absolute; top: 12px; right: 12px;
+  padding: 3px 8px; border-radius: 12px; font-size: 11px; color: white;
+}
+.card h3 { font-size: 16px; margin-bottom: 6px; padding-right: 80px; }
+.card .meta { font-size: 13px; color: #666; line-height: 1.6; }
+.card .meta span { display: inline-block; margin-right: 12px; }
+.card .description { font-size: 13px; color: #444; margin: 8px 0; }
+.card .actions { display: flex; gap: 8px; margin-top: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 14px; border-radius: 8px; font-size: 13px;
+  text-decoration: none; font-weight: 500; border: none; cursor: pointer;
+}
+.btn-navigate { background: #4285f4; color: white; }
+.btn-info { background: #f0f0f0; color: #333; }
+
+.timeline { padding: 12px 16px; display: none; }
+.timeline-day { margin-bottom: 20px; }
+.timeline-day h2 { font-size: 15px; color: #667eea; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #667eea; }
+.timeline-slot { display: flex; gap: 12px; margin-bottom: 8px; }
+.timeline-time { width: 50px; text-align: right; font-size: 13px; font-weight: 600; color: #444; padding-top: 2px; flex-shrink: 0; }
+.timeline-content {
+  flex: 1; background: white; border-radius: 8px; padding: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-left: 3px solid #667eea;
+}
+.timeline-content h4 { font-size: 14px; margin-bottom: 2px; }
+.timeline-content .tl-meta { font-size: 12px; color: #888; }
+
+.start-info {
+  background: #fff3cd; padding: 10px 16px; font-size: 13px;
+  border-bottom: 1px solid #ffc107; display: flex; align-items: center; gap: 8px;
+}
+.start-info .pin { font-size: 18px; }
+
+.share-bar {
+  padding: 10px 16px; background: white; border-bottom: 1px solid #eee;
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+.btn-share {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px; font-size: 13px;
+  font-weight: 500; border: none; cursor: pointer;
+  text-decoration: none; color: white;
+}
+.btn-whatsapp { background: #25D366; }
+.btn-share-native { background: #667eea; }
+
+@media (max-width: 600px) {
+  .header h1 { font-size: 16px; }
+  #map { height: 45vh; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Peschici - Pasqua 3-5 Aprile 2026</h1>
+  <div class="subtitle">📍 Centro storico &bull; 🚶 Tutto a piedi</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showView('map-view')">🗺️ Mappa</div>
+  <div class="tab" onclick="showView('cards')">📋 Lista</div>
+  <div class="tab" onclick="showView('timeline')">🕐 Timeline</div>
+</div>
+
+<div class="share-bar">
+  <button class="btn-share btn-whatsapp" onclick="shareWhatsApp()">💬 WhatsApp</button>
+  <button class="btn-share btn-share-native" onclick="shareNative()">📤 Condividi</button>
+</div>
+
+<div class="start-info">
+  <span class="pin">📌</span>
+  Punto di partenza: <strong>Centro Storico di Peschici</strong>
+</div>
+
+<div id="map-view">
+  <div class="filters" id="filters"></div>
+  <div id="map"></div>
+</div>
+
+<div class="cards" id="cards"></div>
+<div class="timeline" id="timeline"></div>
+
+<script>
+const ACTIVITIES = [
+  {
+    "name": "Passeggiata nel borgo antico",
+    "category": "outdoor",
+    "description": "Vicoli bianchi, scalinate, affacci sul mare. Il centro storico di Peschici e un labirinto di casette bianche arroccate sulla scogliera. Particolarmente suggestivo la sera con le luci soffuse.",
+    "date": "2026-04-03",
+    "time_start": "20:00",
+    "time_end": "22:00",
+    "cost": "Gratuito",
+    "address": "Centro storico, Peschici",
+    "lat": 41.9467,
+    "lng": 16.0108,
+    "contact": "",
+    "source_url": "https://www.idealista.it/news/vacanze/mete-turistiche/2023/09/20/175637-cosa-vedere-a-peschici-centro-spiagge-che-fare-la-sera",
+    "transport_note": "A piedi nel borgo",
+    "verified": true,
+    "distance_km": 0
+  },
+  {
+    "name": "Mokerhapa - Cocktail in una grotta",
+    "category": "food",
+    "description": "Locale suggestivo ricavato da una grotta nel cuore del centro storico. Cocktail creativi, atmosfera unica. In stagione ospita serate con musica dal vivo e artisti.",
+    "date": "2026-04-03",
+    "time_start": "20:00",
+    "time_end": "01:00",
+    "cost": "Basso costo (drink)",
+    "address": "Centro storico, Peschici",
+    "lat": 41.9465,
+    "lng": 16.0110,
+    "contact": "",
+    "source_url": "https://www.regionepuglia.org/5-cose-da-fare-assolutamente-a-peschici/",
+    "transport_note": "Centro storico, a piedi",
+    "verified": false,
+    "distance_km": 0.05
+  },
+  {
+    "name": "Enoteca da Mario Wine Bar",
+    "category": "food",
+    "description": "Wine bar in uno dei vicoli piu caratteristici del centro storico, Vicolo del Purgatorio. Vini pugliesi, taglieri e atmosfera intima.",
+    "date": "2026-04-03",
+    "time_start": "19:00",
+    "time_end": "23:00",
+    "cost": "Basso costo",
+    "address": "Vicolo del Purgatorio 4, Peschici",
+    "lat": 41.9466,
+    "lng": 16.0105,
+    "contact": "",
+    "source_url": "",
+    "transport_note": "Centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.05
+  },
+  {
+    "name": "Trabucco - Aperitivo sul mare",
+    "category": "food",
+    "description": "Strutture storiche di pesca trasformate in locali con aperitivo e cena vista mare. Esperienza unica e tipica del Gargano. Verificare apertura ad aprile.",
+    "date": "2026-04-04",
+    "time_start": "18:00",
+    "time_end": "21:00",
+    "cost": "Medio",
+    "address": "Lungomare, Peschici",
+    "lat": 41.9480,
+    "lng": 16.0060,
+    "contact": "",
+    "source_url": "https://www.regionepuglia.org/5-cose-da-fare-assolutamente-a-peschici/",
+    "transport_note": "~10 min a piedi dal centro",
+    "verified": false,
+    "distance_km": 0.5
+  },
+  {
+    "name": "Passeggiata panoramica sulla scogliera",
+    "category": "outdoor",
+    "description": "Sentiero lungo la scogliera con viste spettacolari sulle calette e sul mare. Percorso accessibile a piedi dal centro storico, ideale al mattino o al tramonto.",
+    "date": "2026-04-04",
+    "time_start": "10:00",
+    "time_end": "12:00",
+    "cost": "Gratuito",
+    "address": "Scogliera est, Peschici",
+    "lat": 41.9475,
+    "lng": 16.0140,
+    "contact": "",
+    "source_url": "https://travel.thewom.it/italia/puglia/peschici-cosa-vedere.html",
+    "transport_note": "A piedi dal centro",
+    "verified": true,
+    "distance_km": 0.3
+  },
+  {
+    "name": "Castello di Peschici",
+    "category": "culture",
+    "description": "Castello medievale sulla punta del promontorio. Offre una vista panoramica sulla baia e sul porto. Passeggiata fino alle mura esterne gratuita.",
+    "date": "2026-04-04",
+    "time_start": "16:00",
+    "time_end": "18:00",
+    "cost": "Gratuito (esterno)",
+    "address": "Promontorio del Castello, Peschici",
+    "lat": 41.9472,
+    "lng": 16.0093,
+    "contact": "",
+    "source_url": "https://www.doveandiamosulgargano.it/en/visit-peschici/",
+    "transport_note": "Centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.15
+  },
+  {
+    "name": "Gelato artigianale e passeggiata serale",
+    "category": "food",
+    "description": "Gelaterie artigianali nel centro storico. Gustate un gelato passeggiando tra i vicoli illuminati del borgo o lungo il lungomare.",
+    "date": "2026-04-04",
+    "time_start": "20:30",
+    "time_end": "22:30",
+    "cost": "Basso costo",
+    "address": "Corso Garibaldi / Centro storico, Peschici",
+    "lat": 41.9460,
+    "lng": 16.0100,
+    "contact": "",
+    "source_url": "",
+    "transport_note": "A piedi nel centro",
+    "verified": true,
+    "distance_km": 0.1
+  },
+  {
+    "name": "Banda musicale - Buona Pasqua!",
+    "category": "music",
+    "description": "Concerto itinerante della Banda Musicale 'Citta di Peschici' per le vie del paese in occasione della Domenica di Pasqua. Evento gratuito e festoso del programma 'Benedetta Primavera 2026'.",
+    "date": "2026-04-05",
+    "time_start": "10:00",
+    "time_end": "12:00",
+    "cost": "Gratuito",
+    "address": "Itinerante per le vie di Peschici",
+    "lat": 41.9460,
+    "lng": 16.0100,
+    "contact": "Comune di Peschici",
+    "source_url": "https://www.retegargano.it/2026/03/17/a-peschici-sbocciano-gli-eventi-con-benedetta-primavera-2026/",
+    "transport_note": "Per le vie del paese, a piedi",
+    "verified": true,
+    "distance_km": 0
+  },
+  {
+    "name": "Porto e spiaggia di Peschici",
+    "category": "outdoor",
+    "description": "Passeggiata al porto e alla spiaggia sotto il promontorio. Ad aprile il mare e gia bello da vedere, e la spiaggia e tranquilla fuori stagione.",
+    "date": "2026-04-05",
+    "time_start": "11:00",
+    "time_end": "14:00",
+    "cost": "Gratuito",
+    "address": "Spiaggia di Peschici",
+    "lat": 41.9450,
+    "lng": 16.0075,
+    "contact": "",
+    "source_url": "",
+    "transport_note": "~5 min a piedi dal centro",
+    "verified": true,
+    "distance_km": 0.3
+  }
+];
+const CATEGORIES = {"music": {"color": "#e74c3c", "icon": "🎵", "label": "Musica"}, "games": {"color": "#9b59b6", "icon": "🎲", "label": "Giochi"}, "outdoor": {"color": "#27ae60", "icon": "🌳", "label": "Outdoor"}, "culture": {"color": "#3498db", "icon": "🎨", "label": "Cultura"}, "food": {"color": "#f39c12", "icon": "🍕", "label": "Cibo / Locali"}, "sport": {"color": "#1abc9c", "icon": "⚽", "label": "Sport"}, "market": {"color": "#e67e22", "icon": "🛍️", "label": "Mercato"}, "festival": {"color": "#e91e63", "icon": "🎉", "label": "Evento"}, "other": {"color": "#95a5a6", "icon": "📍", "label": "Altro"}};
+const CENTER = { lat: 41.9467, lng: 16.0108, name: "Centro Storico di Peschici" };
+const MAX_DIST = 1.0;
+
+let map, markers = [], activeFilters = new Set();
+
+function initMap() {
+  map = L.map('map').setView([CENTER.lat, CENTER.lng], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  const startIcon = L.divIcon({
+    html: '<div style="font-size:28px;text-shadow:0 2px 4px rgba(0,0,0,0.3)">📌</div>',
+    iconSize: [28, 28], iconAnchor: [14, 28], className: ''
+  });
+  L.marker([CENTER.lat, CENTER.lng], { icon: startIcon })
+    .addTo(map)
+    .bindPopup('<strong>' + CENTER.name + '</strong><br><em>Punto di partenza</em>');
+
+  L.circle([CENTER.lat, CENTER.lng], {
+    radius: MAX_DIST * 1000, color: '#667eea', fillColor: '#667eea',
+    fillOpacity: 0.05, weight: 1.5, dashArray: '5,5'
+  }).addTo(map);
+
+  addActivityMarkers();
+  buildFilters();
+}
+
+function addActivityMarkers() {
+  markers.forEach(m => map.removeLayer(m.marker));
+  markers = [];
+
+  ACTIVITIES.forEach((act, i) => {
+    if (activeFilters.size > 0 && !activeFilters.has(act.category)) return;
+
+    const cat = CATEGORIES[act.category] || CATEGORIES.other;
+    const icon = L.divIcon({
+      html: '<div style="font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">' + cat.icon + '</div>',
+      iconSize: [22, 22], iconAnchor: [11, 22], className: ''
+    });
+
+    const gmapsUrl = 'https://www.google.com/maps/dir/?api=1'
+      + '&origin=' + CENTER.lat + ',' + CENTER.lng
+      + '&destination=' + act.lat + ',' + act.lng
+      + '&travelmode=walking';
+
+    const popup = `
+      <div style="min-width:200px;max-width:280px">
+        <div style="background:${cat.color};color:white;padding:4px 8px;border-radius:6px 6px 0 0;margin:-8px -18px 8px -18px;font-size:11px">
+          ${cat.icon} ${cat.label}
+        </div>
+        <strong style="font-size:14px">${act.name}</strong>
+        <div style="font-size:12px;color:#666;margin:6px 0;line-height:1.5">
+          📅 ${act.date || 'N/D'}<br>
+          🕐 ${act.time_start || '?'}${act.time_end ? ' - ' + act.time_end : ''}<br>
+          💰 ${act.cost || 'N/D'}<br>
+          📏 ${act.distance_km} km da ${CENTER.name}<br>
+          ${act.contact ? '📞 ' + act.contact + '<br>' : ''}
+          ${act.address ? '📍 ' + act.address + '<br>' : ''}
+        </div>
+        ${act.description ? '<div style="font-size:12px;color:#444;margin:6px 0">' + act.description + '</div>' : ''}
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <a href="${gmapsUrl}" target="_blank"
+            style="background:#4285f4;color:white;padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+            🧭 Naviga (a piedi)
+          </a>
+          ${act.source_url ? '<a href="' + act.source_url + '" target="_blank" style="background:#f0f0f0;color:#333;padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none">ℹ️ Info</a>' : ''}
+        </div>
+      </div>`;
+
+    const marker = L.marker([act.lat, act.lng], { icon }).addTo(map).bindPopup(popup);
+    markers.push({ marker, activity: act });
+  });
+
+  if (markers.length > 0) {
+    const bounds = L.latLngBounds(markers.map(m => m.marker.getLatLng()));
+    bounds.extend([CENTER.lat, CENTER.lng]);
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }
+}
+
+function buildFilters() {
+  const container = document.getElementById('filters');
+  const cats = [...new Set(ACTIVITIES.map(a => a.category))];
+
+  const allChip = document.createElement('div');
+  allChip.className = 'filter-chip active';
+  allChip.textContent = 'Tutti';
+  allChip.onclick = () => {
+    activeFilters.clear();
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    allChip.classList.add('active');
+    addActivityMarkers();
+    renderCards();
+  };
+  container.appendChild(allChip);
+
+  cats.forEach(cat => {
+    const cfg = CATEGORIES[cat] || CATEGORIES.other;
+    const chip = document.createElement('div');
+    chip.className = 'filter-chip';
+    chip.innerHTML = '<span class="dot" style="background:' + cfg.color + '"></span>' + cfg.icon + ' ' + cfg.label;
+    chip.onclick = () => {
+      if (activeFilters.has(cat)) {
+        activeFilters.delete(cat);
+        chip.classList.remove('active');
+      } else {
+        activeFilters.add(cat);
+        chip.classList.add('active');
+      }
+      document.querySelector('.filter-chip:first-child').classList.toggle('active', activeFilters.size === 0);
+      addActivityMarkers();
+      renderCards();
+    };
+    container.appendChild(chip);
+  });
+}
+
+function renderCards() {
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+
+  const filtered = activeFilters.size > 0
+    ? ACTIVITIES.filter(a => activeFilters.has(a.category))
+    : ACTIVITIES;
+
+  filtered.forEach(act => {
+    const cat = CATEGORIES[act.category] || CATEGORIES.other;
+    const gmapsUrl = 'https://www.google.com/maps/dir/?api=1'
+      + '&origin=' + CENTER.lat + ',' + CENTER.lng
+      + '&destination=' + act.lat + ',' + act.lng
+      + '&travelmode=walking';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-cat" style="background:${cat.color}">${cat.icon} ${cat.label}</div>
+      <h3>${act.name}</h3>
+      <div class="meta">
+        <span>📅 ${act.date || 'N/D'}</span>
+        <span>🕐 ${act.time_start || '?'}${act.time_end ? '-' + act.time_end : ''}</span><br>
+        <span>💰 ${act.cost || 'N/D'}</span>
+        <span>📏 ${act.distance_km}km</span>
+        ${act.contact ? '<br><span>📞 ' + act.contact + '</span>' : ''}
+        ${act.address ? '<br><span>📍 ' + act.address + '</span>' : ''}
+      </div>
+      ${act.description ? '<div class="description">' + act.description + '</div>' : ''}
+      <div class="actions">
+        <a href="${gmapsUrl}" target="_blank" class="btn btn-navigate">🧭 Naviga</a>
+        ${act.source_url ? '<a href="' + act.source_url + '" target="_blank" class="btn btn-info">ℹ️ Dettagli</a>' : ''}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timeline');
+  container.innerHTML = '';
+
+  const byDate = {};
+  ACTIVITIES.forEach(act => {
+    const date = act.date || 'Data non specificata';
+    if (!byDate[date]) byDate[date] = [];
+    byDate[date].push(act);
+  });
+
+  Object.keys(byDate).sort().forEach(date => {
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'timeline-day';
+
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayName = date !== 'Data non specificata'
+      ? dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+      : date;
+
+    dayDiv.innerHTML = '<h2>' + dayName + '</h2>';
+
+    byDate[date].sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
+
+    byDate[date].forEach(act => {
+      const cat = CATEGORIES[act.category] || CATEGORIES.other;
+      const slot = document.createElement('div');
+      slot.className = 'timeline-slot';
+      slot.innerHTML = `
+        <div class="timeline-time">${act.time_start || '?'}</div>
+        <div class="timeline-content" style="border-left-color:${cat.color}">
+          <h4>${cat.icon} ${act.name}</h4>
+          <div class="tl-meta">
+            💰 ${act.cost || 'N/D'} &bull;
+            📏 ${act.distance_km}km &bull;
+            📍 ${act.address || 'N/D'}
+          </div>
+        </div>`;
+      dayDiv.appendChild(slot);
+    });
+
+    container.appendChild(dayDiv);
+  });
+}
+
+function showView(viewId) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active',
+      (viewId === 'map-view' && i === 0) ||
+      (viewId === 'cards' && i === 1) ||
+      (viewId === 'timeline' && i === 2)
+    );
+  });
+
+  document.getElementById('map-view').style.display = viewId === 'map-view' ? 'block' : 'none';
+  document.getElementById('cards').style.display = viewId === 'cards' ? 'block' : 'none';
+  document.getElementById('timeline').style.display = viewId === 'timeline' ? 'block' : 'none';
+
+  if (viewId === 'map-view') setTimeout(() => map.invalidateSize(), 100);
+  if (viewId === 'cards') renderCards();
+  if (viewId === 'timeline') renderTimeline();
+}
+
+function buildShareText() {
+  const title = document.querySelector('.header h1').textContent;
+  let text = '🗺️ ' + title + '\n';
+  text += '📌 Da: ' + CENTER.name + '\n\n';
+
+  const byDate = {};
+  ACTIVITIES.forEach(act => {
+    const d = act.date || 'TBD';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(act);
+  });
+
+  Object.keys(byDate).sort().forEach(date => {
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayLabel = date !== 'TBD'
+      ? dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+      : 'Data da definire';
+    text += '📅 ' + dayLabel + '\n';
+
+    byDate[date].sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
+    byDate[date].forEach(act => {
+      const cat = CATEGORIES[act.category] || CATEGORIES.other;
+      text += cat.icon + ' ' + act.name;
+      if (act.time_start) text += ' (' + act.time_start + (act.time_end ? '-' + act.time_end : '') + ')';
+      text += '\n';
+      if (act.cost) text += '   💰 ' + act.cost + '\n';
+      if (act.address) text += '   📍 ' + act.address + '\n';
+      const gmUrl = 'https://maps.google.com/?q=' + act.lat + ',' + act.lng;
+      text += '   🧭 ' + gmUrl + '\n';
+      text += '\n';
+    });
+  });
+
+  if (window.location.hostname && window.location.hostname !== '') {
+    text += '🔗 Mappa completa: ' + window.location.href + '\n';
+  }
+
+  return text;
+}
+
+function shareWhatsApp() {
+  const text = buildShareText();
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+}
+
+function shareNative() {
+  const text = buildShareText();
+  if (navigator.share) {
+    navigator.share({
+      title: document.querySelector('.header h1').textContent,
+      text: text
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.btn-share-native');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✅ Copiato!';
+      setTimeout(() => btn.innerHTML = orig, 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('Testo copiato!');
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  renderCards();
+  renderTimeline();
+});
+</script>
+</body>
+</html>
