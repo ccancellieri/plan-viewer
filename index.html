@@ -40,6 +40,10 @@ body {
   cursor: pointer; white-space: nowrap; transition: all 0.2s;
 }
 .chip.active { background: #667eea; color: white; border-color: #667eea; }
+.year-chips {
+  display: flex; gap: 6px; padding: 10px 16px 0; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; max-width: 600px; margin: 0 auto;
+}
 .maps-grid { padding: 12px 16px; max-width: 600px; margin: 0 auto; }
 .map-card {
   background: white; border-radius: 16px; padding: 16px 18px;
@@ -72,6 +76,7 @@ body {
 <div class="search-bar">
   <input class="search-input" type="text" placeholder="🔍 Cerca per citta o periodo..." id="search" oninput="filterMaps()">
 </div>
+<div class="year-chips" id="year-chips"></div>
 <div class="city-chips" id="chips"></div>
 <div class="count" id="count"></div>
 <div class="maps-grid" id="maps"></div>
@@ -83,12 +88,19 @@ body {
 
 <script>
 let MAPS = [];
+let activeYear = null;
 let activeCity = null;
 
 fetch('maps/registry.json')
   .then(r => r.json())
   .then(data => {
     MAPS = data.sort((a, b) => b.date_start.localeCompare(a.date_start));
+    // Default to current year if maps exist for it
+    const curYear = new Date().getFullYear().toString();
+    if (MAPS.some(m => m.date_start && m.date_start.startsWith(curYear))) {
+      activeYear = curYear;
+    }
+    buildYearChips();
     buildCityChips();
     filterMaps();
     if (window.matchMedia('(display-mode: standalone)').matches)
@@ -99,26 +111,54 @@ fetch('maps/registry.json')
       '<div class="empty"><div class="icon">🗺️</div><p>Nessuna mappa ancora.<br>Chiedi a Claude di pianificare il tuo prossimo weekend!</p></div>';
   });
 
+function buildYearChips() {
+  const years = [...new Set(MAPS.map(m => m.date_start ? m.date_start.substring(0, 4) : null).filter(Boolean))].sort().reverse();
+  const container = document.getElementById('year-chips');
+  const allChip = document.createElement('span');
+  allChip.className = 'chip' + (!activeYear ? ' active' : '');
+  allChip.textContent = 'Tutti';
+  allChip.onclick = () => { activeYear = null; updateYearChips(); buildCityChips(); filterMaps(); };
+  container.appendChild(allChip);
+  years.forEach(year => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (year === activeYear ? ' active' : '');
+    chip.textContent = year;
+    chip.dataset.year = year;
+    chip.onclick = () => { activeYear = activeYear === year ? null : year; updateYearChips(); buildCityChips(); filterMaps(); };
+    container.appendChild(chip);
+  });
+}
+
+function updateYearChips() {
+  document.querySelectorAll('#year-chips .chip').forEach(c => {
+    if (!c.dataset.year) c.classList.toggle('active', !activeYear);
+    else c.classList.toggle('active', c.dataset.year === activeYear);
+  });
+}
+
 function buildCityChips() {
-  const cities = [...new Set(MAPS.map(m => m.city))].sort();
+  const visibleMaps = activeYear ? MAPS.filter(m => m.date_start && m.date_start.startsWith(activeYear)) : MAPS;
+  const cities = [...new Set(visibleMaps.map(m => m.city))].sort();
+  activeCity = null;
   const container = document.getElementById('chips');
+  container.innerHTML = '';
   const allChip = document.createElement('span');
   allChip.className = 'chip active';
   allChip.textContent = 'Tutte';
-  allChip.onclick = () => { activeCity = null; updateChips(); filterMaps(); };
+  allChip.onclick = () => { activeCity = null; updateCityChips(); filterMaps(); };
   container.appendChild(allChip);
   cities.forEach(city => {
     const chip = document.createElement('span');
     chip.className = 'chip';
     chip.textContent = city;
     chip.dataset.city = city;
-    chip.onclick = () => { activeCity = activeCity === city ? null : city; updateChips(); filterMaps(); };
+    chip.onclick = () => { activeCity = activeCity === city ? null : city; updateCityChips(); filterMaps(); };
     container.appendChild(chip);
   });
 }
 
-function updateChips() {
-  document.querySelectorAll('.chip').forEach(c => {
+function updateCityChips() {
+  document.querySelectorAll('#chips .chip').forEach(c => {
     if (!c.dataset.city) c.classList.toggle('active', !activeCity);
     else c.classList.toggle('active', c.dataset.city === activeCity);
   });
@@ -129,6 +169,7 @@ function filterMaps() {
   const container = document.getElementById('maps');
   container.innerHTML = '';
   const filtered = MAPS.filter(m => {
+    if (activeYear && (!m.date_start || !m.date_start.startsWith(activeYear))) return false;
     if (activeCity && m.city !== activeCity) return false;
     if (query) {
       const hay = (m.title + ' ' + m.city + ' ' + m.location + ' ' + m.date_label + ' ' + (m.categories || []).join(' ')).toLowerCase();

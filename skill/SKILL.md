@@ -32,7 +32,7 @@ Every time you run, you follow this flow:
 3. **Search smartly** — Use known sources first, then explore new ones
 4. **Collect activities** — With full details (name, time, cost, contact, coordinates, category)
 5. **Generate the map** — Run `skill/scripts/generate_map.py` to create an interactive HTML file
-6. **Auto-deploy** — Clone repo, add map, update index, commit and push
+6. **Auto-deploy** — Add map + registry, commit and push to master
 7. **Present results** — Share the live URL + a brief text summary
 8. **Update memory** — Save new sources discovered, and ask if the user wants to refine preferences
 
@@ -252,28 +252,23 @@ If the user mentions they went somewhere and liked/disliked it, add it to `skill
 ## Step 5b: Auto-Deploy to GitHub Pages
 
 After generating the map (which was written directly into the repo), auto-commit and push.
-
-First, check if the repo folder is accessible. If the user has mounted their filesystem
-via `request_cowork_directory`, we can write directly. Otherwise, ask them to mount it.
+The `maps/` directory contains both the new HTML file and the updated `registry.json` —
+that's the only thing that needs to change. `index.html` is never modified.
 
 ```bash
 REPO_PATH="[local_clone_path from config.json]"
 
 cd "$REPO_PATH"
-git add maps/ index.html
-git commit -m "Add map: [title]"
-git push
+git add maps/
+git commit -m "Add [title]"
+git push origin master
 ```
 
 If git push succeeds, tell the user:
 > "Mappa pubblicata! La trovi qui: [pages_url from config]/maps/[filename]"
 
 If git push fails (auth issues, etc.), tell the user:
-> "La mappa e l'index sono aggiornati nel tuo repo locale. Fai `git push` dal terminale per pubblicarla."
-
-The key insight: by generating directly into the local repo clone AND auto-updating index.html,
-the user never has to copy files or edit anything manually. At most they do a `git push` if
-the auto-push didn't work.
+> "La mappa e il registry sono aggiornati nel tuo repo locale. Fai `git push origin master` dal terminale per pubblicarla."
 
 ## Special Modes
 
