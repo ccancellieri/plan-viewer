@@ -396,7 +396,7 @@ const PROVIDERS = {
   gemini: {
     label: "Gemini + Google Search - FREE",
     keyName: "lp_google_ai_key",
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     free: true,
     webSearch: true,
     signupUrl: "https://aistudio.google.com/apikey",
@@ -524,19 +524,52 @@ async function callClaude(apiKey, systemPrompt, userPrompt) {
 }
 
 async function callGemini(apiKey, systemPrompt, userPrompt) {
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + PROVIDERS.gemini.model + ":generateContent?key=" + apiKey;
-  const req = new Request(url);
-  req.method = "POST";
-  req.headers = { "Content-Type": "application/json" };
-  req.body = JSON.stringify({
+  var baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/";
+  var body = {
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents: [{ parts: [{ text: userPrompt }] }],
     generationConfig: { maxOutputTokens: 4096 },
     tools: [{ google_search: {} }],
-  });
-  const resp = await req.loadJSON();
-  if (resp.error) throw new Error("Gemini: " + resp.error.message);
-  return resp.candidates[0].content.parts[0].text;
+  };
+
+  // Try with google_search first, fallback without it if it fails
+  var resp;
+  for (var attempt = 0; attempt < 2; attempt++) {
+    if (attempt === 1) {
+      delete body.tools; // retry without google_search
+    }
+    var url = baseUrl + PROVIDERS.gemini.model + ":generateContent?key=" + apiKey;
+    var req = new Request(url);
+    req.method = "POST";
+    req.headers = { "Content-Type": "application/json" };
+    req.body = JSON.stringify(body);
+    resp = await req.loadJSON();
+
+    if (resp.error) {
+      // If google_search caused the error, retry without it
+      if (attempt === 0 && (resp.error.code === 400 || resp.error.code === 403)) continue;
+      throw new Error("Gemini: " + (resp.error.message || JSON.stringify(resp.error)));
+    }
+    break;
+  }
+
+  // Handle grounding response — may have multiple parts
+  var candidate = resp.candidates && resp.candidates[0];
+  if (!candidate || !candidate.content || !candidate.content.parts) {
+    // Check for blocked response
+    if (candidate && candidate.finishReason === "SAFETY") {
+      throw new Error("Gemini: risposta bloccata dal filtro di sicurezza");
+    }
+    throw new Error("Gemini: risposta vuota o formato inatteso");
+  }
+  // Concatenate all text parts (grounding may split across multiple parts)
+  var textParts = candidate.content.parts
+    .filter(function(p) { return p.text; })
+    .map(function(p) { return p.text; });
+  if (textParts.length === 0) {
+    throw new Error("Gemini: nessun testo nella risposta");
+  }
+  return textParts.join("");
 }
 
 async function callPerplexity(apiKey, systemPrompt, userPrompt) {
