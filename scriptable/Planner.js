@@ -514,7 +514,7 @@ async function callClaude(apiKey, systemPrompt, userPrompt) {
   };
   req.body = JSON.stringify({
     model: PROVIDERS.claude.model,
-    max_tokens: 4096,
+    max_tokens: 8192,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -528,7 +528,7 @@ async function callGemini(apiKey, systemPrompt, userPrompt) {
   var body = {
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents: [{ parts: [{ text: userPrompt }] }],
-    generationConfig: { maxOutputTokens: 4096 },
+    generationConfig: { maxOutputTokens: 8192 },
     tools: [{ google_search: {} }],
   };
 
@@ -585,7 +585,7 @@ async function callPerplexity(apiKey, systemPrompt, userPrompt) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    max_tokens: 4096,
+    max_tokens: 8192,
   });
   const resp = await req.loadJSON();
   if (resp.error) throw new Error("Perplexity: " + (resp.error.message || JSON.stringify(resp.error)));
@@ -605,7 +605,7 @@ async function callGroq(apiKey, systemPrompt, userPrompt) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    max_tokens: 4096,
+    max_tokens: 8192,
     temperature: 0.7,
   });
   const resp = await req.loadJSON();
@@ -626,7 +626,7 @@ async function callGrok(apiKey, systemPrompt, userPrompt) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    max_tokens: 4096,
+    max_tokens: 8192,
     temperature: 0.7,
   });
   const resp = await req.loadJSON();
@@ -647,7 +647,7 @@ async function callDeepSeek(apiKey, systemPrompt, userPrompt) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    max_tokens: 4096,
+    max_tokens: 8192,
     temperature: 0.7,
   });
   const resp = await req.loadJSON();
@@ -668,7 +668,7 @@ async function callMistral(apiKey, systemPrompt, userPrompt) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    max_tokens: 4096,
+    max_tokens: 8192,
     temperature: 0.7,
     tool_choice: "auto",
     tools: [{ type: "function", function: { name: "web_search", description: "Search the web for current information", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } }],
@@ -695,7 +695,7 @@ async function callCohere(apiKey, systemPrompt, userPrompt) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    max_tokens: 4096,
+    max_tokens: 8192,
     temperature: 0.7,
     connectors: [{ id: "web-search" }],
   });
@@ -866,7 +866,7 @@ function buildPrompt(city, dateStart, dateEnd, centerName, interests, prefs, res
     '  "time_start": "HH:MM",\n  "time_end": "HH:MM",\n  "cost": "Free or price",\n' +
     '  "address": "Full street address",\n  "lat": 0.0,\n  "lng": 0.0,\n' +
     '  "contact": "Phone, website, or social",\n  "source_url": "URL where you found this"\n}\n\n' +
-    "Return 5-12 activities. Quality over quantity. Prefer verified events with confirmed dates.\n" +
+    "Return 5-8 activities. Quality over quantity. Keep descriptions SHORT (max 1 sentence). Prefer verified events with confirmed dates.\n" +
     "ALL coordinates must be real and accurate for the given addresses.";
 
   const userPrompt = "Find leisure activities in " + city + ' near "' + centerName + '" from ' + dateStart + " to " + dateEnd + ".\n\n" +
@@ -885,6 +885,39 @@ function buildPrompt(city, dateStart, dateEnd, centerName, interests, prefs, res
 }
 
 // ─── PARSE LLM RESPONSE ─────────────────────────────────────────────────────
+
+function repairTruncatedJSON(jsonStr) {
+  // Find the last complete JSON object by looking for the last "},"
+  // or "}" that closes a complete object in the array
+  var lastComplete = -1;
+  var depth = 0;
+  var inString = false;
+  var escape = false;
+
+  for (var i = 0; i < jsonStr.length; i++) {
+    var ch = jsonStr[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\") { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") depth++;
+    if (ch === "}") {
+      depth--;
+      if (depth === 0) lastComplete = i; // end of a top-level object inside array
+    }
+  }
+
+  if (lastComplete <= 0) return null;
+
+  // Cut at last complete object, close the array
+  var repaired = jsonStr.substring(0, lastComplete + 1);
+  // Remove trailing comma if present
+  repaired = repaired.replace(/,\s*$/, "");
+  // Ensure it starts with [ and ends with ]
+  if (repaired.charAt(0) !== "[") repaired = "[" + repaired;
+  repaired += "]";
+  return repaired;
+}
 
 function parseActivities(text, dateStart, dateEnd) {
   var cleaned = text.trim();
@@ -927,7 +960,16 @@ function parseActivities(text, dateStart, dateEnd) {
     try {
       activities = JSON.parse(jsonStr);
     } catch (e2) {
-      throw new Error("Invalid JSON from LLM: " + e2.message + "\nFirst 300 chars: " + jsonStr.substring(0, 300));
+      // Try to repair truncated JSON — find last complete object
+      var repaired = repairTruncatedJSON(jsonStr);
+      if (repaired) {
+        try {
+          activities = JSON.parse(repaired);
+        } catch (e3) { /* fall through */ }
+      }
+      if (!activities) {
+        throw new Error("Invalid JSON from LLM: " + e2.message + "\nFirst 300 chars: " + jsonStr.substring(0, 300));
+      }
     }
   }
 
@@ -1539,7 +1581,7 @@ function buildPromptFromProfile(city, dateStart, dateEnd, centerName, profile, r
     '"description":"string","date":"YYYY-MM-DD","time_start":"HH:MM","time_end":"HH:MM",' +
     '"cost":"Free or price","address":"Full street address","lat":0.0,"lng":0.0,' +
     '"contact":"phone/website/social","source_url":"URL where you found this"}\n\n' +
-    "Return 5-12 activities. Quality over quantity. Prefer verified events with confirmed dates.\n" +
+    "Return 5-8 activities. Quality over quantity. Keep descriptions SHORT (max 1 sentence). Prefer verified events with confirmed dates.\n" +
     "ALL coordinates must be real and accurate for the given addresses — NOT the city center.\n" +
     "MANDATORY for EVERY activity:\n" +
     "- source_url: the actual URL where you found this event (NOT a generic homepage)\n" +
