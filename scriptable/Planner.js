@@ -1069,7 +1069,7 @@ function generateMapHTML(activities, centerLat, centerLng, centerName, title, ma
     '.btn-share-native { background: #667eea; }\n' +
     '@media (max-width: 600px) { .header h1 { font-size: 16px; } #map { height: 45vh; } }\n' +
     '</style>\n</head>\n<body>\n\n' +
-    '<div class="header">\n  <h1>' + title + '</h1>\n' +
+    '<div class="header">\n  <h1 onclick="editTitle()" style="cursor:pointer" title="Tap to edit">' + title + ' ✏️</h1>\n' +
     '  <div class="subtitle">📍 Da: ' + centerName + ' &bull; 🚲 Max: ' + maxDistance + 'km</div>\n</div>\n\n' +
     '<div class="tabs">\n' +
     '  <div class="tab active" onclick="showView(\'map-view\')">🗺️ Mappa</div>\n' +
@@ -1087,7 +1087,17 @@ function generateMapHTML(activities, centerLat, centerLng, centerName, title, ma
     'var CATEGORIES = ' + catsJSON + ';\n' +
     'var CENTER = { lat: ' + centerLat + ', lng: ' + centerLng + ', name: "' + escapedCenterName + '" };\n' +
     'var MAX_DIST = ' + maxDistance + ';\n' +
-    'var map, markers = [], activeFilters = new Set();\n\n' +
+    'var map, markers = [], activeFilters = new Set();\n' +
+    'window._newTitle = null;\n' +
+    'function editTitle() {\n' +
+    '  var h1 = document.querySelector(".header h1");\n' +
+    '  var current = h1.textContent.replace(/ ✏️$/, "");\n' +
+    '  var newT = prompt("Nome mappa:", current);\n' +
+    '  if (newT && newT.trim() && newT.trim() !== current) {\n' +
+    '    h1.textContent = newT.trim() + " ✏️";\n' +
+    '    window._newTitle = newT.trim();\n' +
+    '  }\n' +
+    '}\n\n' +
     'function initMap() {\n' +
     '  map = L.map("map", { closePopupOnClick: true }).setView([CENTER.lat, CENTER.lng], 14);\n' +
     '  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {\n' +
@@ -1815,7 +1825,7 @@ async function voicePlan() {
     });
 
     if (vc === 0) {
-      await showMapInWebView(mapPath);
+      await showMapInWebView(mapPath, mapId);
     } else if (vc === 1) {
       var kml = generateKML(activities, centerLat, centerLng, centerName, mapTitle);
       var kmlPath = fm.joinPath(mapsDir, mapId + ".kml");
@@ -2180,7 +2190,7 @@ async function planNewTrip() {
     var rChoice = await resultAlert.presentAlert();
 
     if (rChoice === 0) {
-      await showMapInWebView(mapPath);
+      await showMapInWebView(mapPath, mapId);
     } else if (rChoice === 1) {
       var kml = generateKML(activities, centerLat, centerLng, centerName, mapTitle);
       var kmlPath = fm.joinPath(mapsDir, mapId + ".kml");
@@ -2256,7 +2266,7 @@ async function showMyMaps() {
 
   if (action === 0) {
     // View map
-    await showMapInWebView(mapPath);
+    await showMapInWebView(mapPath, selected.id);
     return showMyMaps();
   } else if (action === 1) {
     // Add events to existing map
@@ -2477,16 +2487,35 @@ async function addEventsToMap(mapEntry, existingActivities, existingProfile, cen
   var doneChoice = await doneAlert.presentAlert();
 
   if (doneChoice === 0) {
-    await showMapInWebView(mapPath);
+    await showMapInWebView(mapPath, mapEntry.id);
   }
 }
 
-async function showMapInWebView(mapPath) {
+async function showMapInWebView(mapPath, mapId) {
   if (!fm.isFileDownloaded(mapPath)) fm.downloadFileFromiCloud(mapPath);
   var html = fm.readString(mapPath);
   var wv = new WebView();
   await wv.loadHTML(html);
   await wv.present(true);
+
+  // Check if user edited the title while viewing
+  try {
+    var newTitle = await wv.evaluateJavaScript("window._newTitle");
+    if (newTitle && mapId) {
+      // Update registry
+      var reg = loadRegistry();
+      reg = reg.map(function(r) {
+        if (r.id === mapId) r.title = newTitle;
+        return r;
+      });
+      saveRegistry(reg);
+      // Update the HTML file with new title
+      var updatedHtml = fm.readString(mapPath);
+      // Replace the h1 content
+      updatedHtml = updatedHtml.replace(/<h1[^>]*>.*?<\/h1>/, '<h1 onclick="editTitle()" style="cursor:pointer" title="Tap to edit">' + newTitle + ' ✏️</h1>');
+      fm.writeString(mapPath, updatedHtml);
+    }
+  } catch (e) { /* ignore */ }
 }
 
 async function showSettings() {
