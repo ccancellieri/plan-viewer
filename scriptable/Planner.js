@@ -888,16 +888,53 @@ function buildPrompt(city, dateStart, dateEnd, centerName, interests, prefs, res
 
 function parseActivities(text, dateStart, dateEnd) {
   var cleaned = text.trim();
-  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  // Strip all markdown code fences (possibly multiple)
+  cleaned = cleaned.replace(/```(?:json)?[\s\n]*/gi, "").replace(/```/g, "");
   cleaned = cleaned.trim();
 
+  // Try to find a JSON array
   var start = cleaned.indexOf("[");
   var end = cleaned.lastIndexOf("]");
-  if (start === -1 || end === -1) throw new Error("No JSON array found in LLM response");
+
+  // If no array found, try to find individual JSON objects and wrap them
+  if (start === -1 || end === -1) {
+    var objStart = cleaned.indexOf("{");
+    var objEnd = cleaned.lastIndexOf("}");
+    if (objStart !== -1 && objEnd !== -1) {
+      // Wrap loose objects in an array
+      cleaned = "[" + cleaned.substring(objStart, objEnd + 1) + "]";
+      start = 0;
+      end = cleaned.length - 1;
+    } else {
+      throw new Error("No JSON found in LLM response. Response starts with: " + cleaned.substring(0, 200));
+    }
+  }
 
   var jsonStr = cleaned.substring(start, end + 1);
-  var activities = JSON.parse(jsonStr);
 
+  // Fix common JSON issues from LLMs
+  jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1"); // trailing commas
+  jsonStr = jsonStr.replace(/[\x00-\x1f]/g, function(c) { // control chars
+    return c === "\n" || c === "\r" || c === "\t" ? c : "";
+  });
+
+  var activities;
+  try {
+    activities = JSON.parse(jsonStr);
+  } catch (e) {
+    // Try more aggressive cleanup: remove JS-style comments
+    jsonStr = jsonStr.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    try {
+      activities = JSON.parse(jsonStr);
+    } catch (e2) {
+      throw new Error("Invalid JSON from LLM: " + e2.message + "\nFirst 300 chars: " + jsonStr.substring(0, 300));
+    }
+  }
+
+  // Handle case where LLM returns {activities: [...]} instead of [...]
+  if (!Array.isArray(activities) && activities && Array.isArray(activities.activities)) {
+    activities = activities.activities;
+  }
   if (!Array.isArray(activities)) throw new Error("Response is not an array");
   if (activities.length === 0) throw new Error("No activities found");
 
