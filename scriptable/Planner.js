@@ -118,6 +118,8 @@ const STRINGS = {
     addAnotherModel: "Add another AI", multiModelMsg: "Pick one or more AIs to search with",
     searchApiInfo: "Search APIs boost results by feeding real web search data to the AI. Optional but recommended!",
     total: "Total", createMap: "Create Map", loadMore: "Load more", retry: "Retry",
+    mapName: "Map Name", mapNameMsg: "Choose a name for this map", mapNamePlaceholder: "Map name",
+    rename: "Rename",
   },
   it: {
     mainTitle: "Planner", mainMsg: "Cosa vuoi fare?",
@@ -193,6 +195,8 @@ const STRINGS = {
     addAnotherModel: "Aggiungi un'altra AI", multiModelMsg: "Scegli una o piu AI per cercare",
     searchApiInfo: "Le API di ricerca migliorano i risultati fornendo dati web reali alla AI. Opzionale ma consigliato!",
     total: "Totale", createMap: "Crea Mappa", loadMore: "Carica altre", retry: "Riprova",
+    mapName: "Nome Mappa", mapNameMsg: "Scegli un nome per questa mappa", mapNamePlaceholder: "Nome mappa",
+    rename: "Rinomina",
   },
   es: {
     mainTitle: "Planner", mainMsg: "Que quieres hacer?",
@@ -268,6 +272,8 @@ const STRINGS = {
     addAnotherModel: "Agregar otra IA", multiModelMsg: "Elige una o mas IAs para buscar",
     searchApiInfo: "Las APIs de busqueda mejoran los resultados proporcionando datos web reales a la IA. Opcional pero recomendado!",
     total: "Total", createMap: "Crear Mapa", loadMore: "Cargar mas", retry: "Reintentar",
+    mapName: "Nombre Mapa", mapNameMsg: "Elige un nombre para este mapa", mapNamePlaceholder: "Nombre mapa",
+    rename: "Renombrar",
   },
 };
 
@@ -2134,7 +2140,14 @@ async function planNewTrip() {
     var activities = await paginatedSearch(provider, city, dateStart, dateEnd, centerName, centerLat, centerLng, profile, 5);
     if (!activities || activities.length === 0) return showMainMenu();
 
-    var mapTitle = city + " - " + (dateStart === dateEnd ? dateStart : dateStart + " / " + dateEnd);
+    var defaultTitle = city + " - " + (dateStart === dateEnd ? dateStart : dateStart + " / " + dateEnd);
+    var titleAlert = new Alert();
+    titleAlert.title = "📝 " + t("mapName");
+    titleAlert.message = t("mapNameMsg");
+    titleAlert.addTextField(t("mapNamePlaceholder"), defaultTitle);
+    titleAlert.addAction("OK");
+    await titleAlert.presentAlert();
+    var mapTitle = (titleAlert.textFieldValue(0).trim()) || defaultTitle;
     var mapId = city.toLowerCase().replace(/\s+/g, "-") + "-" + dateStart;
     var fileName = mapId + ".html";
 
@@ -2235,6 +2248,7 @@ async function showMyMaps() {
   actionMenu.message = selected.activities + " " + t("activities") + " • " + selected.categories.join(", ");
   actionMenu.addAction("🗺️ " + t("viewMap"));
   actionMenu.addAction("➕ " + t("addToMap"));
+  actionMenu.addAction("✏️ " + t("rename"));
   actionMenu.addAction("📤 " + t("exportKml"));
   actionMenu.addDestructiveAction("🗑️ " + t("delete"));
   actionMenu.addCancelAction(t("back"));
@@ -2249,6 +2263,28 @@ async function showMyMaps() {
     await addEventsToMap(selected, savedActivities, savedProfile, cLat, cLng, cName);
     return showMyMaps();
   } else if (action === 2) {
+    // Rename map
+    var renameAlert = new Alert();
+    renameAlert.title = "✏️ " + t("rename");
+    renameAlert.addTextField(t("mapNamePlaceholder"), selected.title);
+    renameAlert.addAction(t("save"));
+    renameAlert.addCancelAction(t("cancel"));
+    if (await renameAlert.presentAlert() === 0) {
+      var newTitle = renameAlert.textFieldValue(0).trim();
+      if (newTitle && newTitle !== selected.title) {
+        selected.title = newTitle;
+        var reg = loadRegistry();
+        reg = reg.map(function(r) { return r.id === selected.id ? selected : r; });
+        saveRegistry(reg);
+        // Regenerate HTML with new title
+        if (savedActivities.length > 0) {
+          var html = generateMapHTML(savedActivities, cLat, cLng, cName, newTitle, selected.max_distance_km || 4);
+          fm.writeString(mapPath, html);
+        }
+      }
+    }
+    return showMyMaps();
+  } else if (action === 3) {
     // Export KML
     if (savedActivities.length > 0) {
       var kml2 = generateKML(savedActivities, cLat, cLng, cName, selected.title);
@@ -2257,7 +2293,7 @@ async function showMyMaps() {
       await ShareSheet.present([kmlPath2]);
     }
     return showMyMaps();
-  } else if (action === 3) {
+  } else if (action === 4) {
     // Delete
     var confirm = new Alert();
     confirm.title = t("deleteMap");
