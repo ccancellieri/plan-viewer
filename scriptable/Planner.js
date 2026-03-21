@@ -117,6 +117,7 @@ const STRINGS = {
     quickAdd: "Quick Add (same profile)", addMoreModels: "Search with another AI too?",
     addAnotherModel: "Add another AI", multiModelMsg: "Pick one or more AIs to search with",
     searchApiInfo: "Search APIs boost results by feeding real web search data to the AI. Optional but recommended!",
+    total: "Total", createMap: "Create Map", loadMore: "Load more", retry: "Retry",
   },
   it: {
     mainTitle: "Planner", mainMsg: "Cosa vuoi fare?",
@@ -191,6 +192,7 @@ const STRINGS = {
     quickAdd: "Aggiungi Rapido (stesso profilo)", addMoreModels: "Cercare anche con un'altra AI?",
     addAnotherModel: "Aggiungi un'altra AI", multiModelMsg: "Scegli una o piu AI per cercare",
     searchApiInfo: "Le API di ricerca migliorano i risultati fornendo dati web reali alla AI. Opzionale ma consigliato!",
+    total: "Totale", createMap: "Crea Mappa", loadMore: "Carica altre", retry: "Riprova",
   },
   es: {
     mainTitle: "Planner", mainMsg: "Que quieres hacer?",
@@ -265,6 +267,7 @@ const STRINGS = {
     quickAdd: "Agregar Rapido (mismo perfil)", addMoreModels: "Buscar tambien con otra IA?",
     addAnotherModel: "Agregar otra IA", multiModelMsg: "Elige una o mas IAs para buscar",
     searchApiInfo: "Las APIs de busqueda mejoran los resultados proporcionando datos web reales a la IA. Opcional pero recomendado!",
+    total: "Total", createMap: "Crear Mapa", loadMore: "Cargar mas", retry: "Reintentar",
   },
 };
 
@@ -1581,7 +1584,7 @@ function buildPromptFromProfile(city, dateStart, dateEnd, centerName, profile, r
     '"description":"string","date":"YYYY-MM-DD","time_start":"HH:MM","time_end":"HH:MM",' +
     '"cost":"Free or price","address":"Full street address","lat":0.0,"lng":0.0,' +
     '"contact":"phone/website/social","source_url":"URL where you found this"}\n\n' +
-    "Return 5-8 activities. Quality over quantity. Keep descriptions SHORT (max 1 sentence). Prefer verified events with confirmed dates.\n" +
+    "Return EXACTLY 4 activities per request. Keep descriptions SHORT (max 1 sentence).\n" +
     "ALL coordinates must be real and accurate for the given addresses — NOT the city center.\n" +
     "MANDATORY for EVERY activity:\n" +
     "- source_url: the actual URL where you found this event (NOT a generic homepage)\n" +
@@ -1845,6 +1848,80 @@ async function showMainMenu() {
   }
 }
 
+async function paginatedSearch(provider, city, dateStart, dateEnd, centerName, centerLat, centerLng, profile, maxPages) {
+  var allActivities = [];
+  var resources = loadResources();
+  var searchCtx = await webSearchBoost(city, dateStart, dateEnd, profile.specific || profile.interests);
+  var page = 0;
+
+  while (page < (maxPages || 5)) {
+    page++;
+    var prompts = buildPromptFromProfile(city, dateStart, dateEnd, centerName, profile, resources, centerLat, centerLng);
+    if (searchCtx) prompts.userPrompt += searchCtx;
+
+    // Tell LLM to exclude already-found activities
+    if (allActivities.length > 0) {
+      var existingNames = allActivities.map(function(a) { return a.name; }).join(", ");
+      prompts.userPrompt += "\n\nIMPORTANT: I already have these activities, find DIFFERENT ones:\n" + existingNames;
+    }
+
+    var statusMsg = new Alert();
+    statusMsg.title = "🔍 " + t("searching") + " (" + page + ")";
+    statusMsg.message = allActivities.length + " " + t("activities") + " " + t("found") + "...\n" + t("searchWait");
+    statusMsg.addAction("OK");
+    await statusMsg.presentAlert();
+
+    try {
+      var response = await callLLM(provider, prompts.systemPrompt, prompts.userPrompt);
+      var newActivities = parseActivities(response, dateStart, dateEnd);
+
+      // Deduplicate by name
+      var existingSet = {};
+      allActivities.forEach(function(a) { existingSet[a.name.toLowerCase()] = true; });
+      newActivities = newActivities.filter(function(a) { return !existingSet[a.name.toLowerCase()]; });
+
+      // Calculate distances
+      for (var i = 0; i < newActivities.length; i++) {
+        newActivities[i].distance_km = Math.round(
+          haversine(centerLat, centerLng, newActivities[i].lat || centerLat, newActivities[i].lng || centerLng) * 10
+        ) / 10;
+      }
+
+      allActivities = allActivities.concat(newActivities);
+
+      // Ask user: continue or stop?
+      var names = newActivities.map(function(a) { return "• " + a.name; }).join("\n");
+      var moreAlert = new Alert();
+      moreAlert.title = "✅ +" + newActivities.length + " " + t("activities");
+      moreAlert.message = names + "\n\n" + t("total") + ": " + allActivities.length + " " + t("activities");
+      moreAlert.addAction("✅ " + t("done") + " — " + t("createMap"));
+      moreAlert.addAction("🔍 " + t("loadMore"));
+      moreAlert.addCancelAction(t("cancel"));
+      var moreChoice = await moreAlert.presentAlert();
+
+      if (moreChoice === -1) return null; // cancelled
+      if (moreChoice === 0) break; // done, create map
+      // moreChoice === 1 → continue loop
+
+    } catch (e) {
+      var errPage = new Alert();
+      errPage.title = "⚠️ " + t("error");
+      errPage.message = String(e.message || e);
+      if (allActivities.length > 0) {
+        errPage.addAction("✅ " + t("done") + " (" + allActivities.length + " " + t("activities") + ")");
+      }
+      errPage.addAction("🔄 " + t("retry"));
+      errPage.addCancelAction(t("cancel"));
+      var errChoice = await errPage.presentAlert();
+      if (errChoice === -1) return null;
+      if (errChoice === 0 && allActivities.length > 0) break;
+      page--; // retry same page
+    }
+  }
+
+  return allActivities.length > 0 ? allActivities : null;
+}
+
 async function planNewTrip() {
   // 1. Location — Nominatim search with autocomplete
   var city, centerLat, centerLng, centerName;
@@ -2052,27 +2129,10 @@ async function planNewTrip() {
   if (!profile) return showMainMenu();
   var maxDistance = profile.max_distance_km || 4;
 
-  // 6. Search
-  var statusAlert = new Alert();
-  statusAlert.title = "🔍 " + t("searching");
-  statusAlert.message = t("searchingMsg") + " " + city + "...\n\n" + t("searchWait");
-  statusAlert.addAction("OK");
-  await statusAlert.presentAlert();
-
+  // 6. Paginated Search
   try {
-    var resources = loadResources();
-    var prompts = buildPromptFromProfile(city, dateStart, dateEnd, centerName, profile, resources, centerLat, centerLng);
-    // Boost with web search if Tavily/Serper keys are configured
-    var searchCtx = await webSearchBoost(city, dateStart, dateEnd, profile.specific || profile.interests);
-    if (searchCtx) prompts.userPrompt += searchCtx;
-    var response = await callLLM(provider, prompts.systemPrompt, prompts.userPrompt);
-    var activities = parseActivities(response, dateStart, dateEnd);
-
-    for (var ai = 0; ai < activities.length; ai++) {
-      activities[ai].distance_km = Math.round(
-        haversine(centerLat, centerLng, activities[ai].lat || centerLat, activities[ai].lng || centerLng) * 10
-      ) / 10;
-    }
+    var activities = await paginatedSearch(provider, city, dateStart, dateEnd, centerName, centerLat, centerLng, profile, 5);
+    if (!activities || activities.length === 0) return showMainMenu();
 
     var mapTitle = city + " - " + (dateStart === dateEnd ? dateStart : dateStart + " / " + dateEnd);
     var mapId = city.toLowerCase().replace(/\s+/g, "-") + "-" + dateStart;
@@ -2330,36 +2390,9 @@ async function addEventsToMap(mapEntry, existingActivities, existingProfile, cen
     var allNames = merged.map(function(a) { return a.name; });
     searchProfile.avoid.push("DO NOT repeat these already-listed activities: " + allNames.join(", "));
 
-    var statusAlert = new Alert();
-    statusAlert.title = "🔍 " + t("searching") + " (" + (pi + 1) + "/" + selectedProviders.length + ")";
-    statusAlert.message = t("searchingMsg") + " " + mapEntry.city + "\n🤖 " + PROVIDERS[curProvider].label + "\n\n" + t("searchWait");
-    statusAlert.addAction("OK");
-    await statusAlert.presentAlert();
-
     try {
-      var resources = loadResources();
-      var prompts = buildPromptFromProfile(mapEntry.city, mapEntry.date_start, mapEntry.date_end, centerName, searchProfile, resources, centerLat, centerLng);
-      var searchCtx2 = await webSearchBoost(mapEntry.city, mapEntry.date_start, mapEntry.date_end, searchProfile.specific || searchProfile.interests);
-      if (searchCtx2) prompts.userPrompt += searchCtx2;
-      var response = await callLLM(curProvider, prompts.systemPrompt, prompts.userPrompt);
-      var newActivities = parseActivities(response, mapEntry.date_start, mapEntry.date_end);
-
-      for (var ai = 0; ai < newActivities.length; ai++) {
-        newActivities[ai].distance_km = Math.round(
-          haversine(centerLat, centerLng, newActivities[ai].lat || centerLat, newActivities[ai].lng || centerLng) * 10
-        ) / 10;
-      }
-
-      // Show what we found and confirm merge
-      var newNames = newActivities.map(function(a) { return "• " + a.name; }).join("\n");
-      var mergeAlert = new Alert();
-      mergeAlert.title = "✅ " + PROVIDERS[curProvider].label + ": " + newActivities.length + " " + t("activities");
-      mergeAlert.message = newNames + "\n\n" + t("mergeConfirm");
-      mergeAlert.addAction("✅ " + t("addToMap"));
-      mergeAlert.addCancelAction(t("cancel"));
-      var mc2 = await mergeAlert.presentAlert();
-
-      if (mc2 === 0) {
+      var newActivities = await paginatedSearch(curProvider, mapEntry.city, mapEntry.date_start, mapEntry.date_end, centerName, centerLat, centerLng, searchProfile, 3);
+      if (newActivities && newActivities.length > 0) {
         // Deduplicate and merge
         newActivities.forEach(function(a) {
           if (!existingNamesSet[a.name.toLowerCase()]) {
