@@ -2,128 +2,180 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#667eea">
-<meta name="description" content="AI-powered leisure activity planner with interactive maps">
-<link rel="manifest" href="manifest.json">
-<title>Plan Viewer</title>
+<meta name="description" content="AI-powered leisure activity planner with interactive maps. Plan trips, discover events, explore cities.">
+<link rel="icon" type="image/png" href="app/favicon.png">
+<title>Planner - AI Activity Planner</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f5f5f5; min-height: 100vh;
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8f9fc;color:#333;-webkit-font-smoothing:antialiased}
+a{color:#667eea;text-decoration:none}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-align:center;padding:60px 20px 48px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:120%;height:80px;background:#f8f9fc;border-radius:50% 50% 0 0}
+.hero h1{font-size:42px;font-weight:800;letter-spacing:-0.5px}
+.hero .tagline{font-size:18px;opacity:0.9;margin-top:8px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.5}
+.hero .version{display:inline-block;background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:12px;font-size:11px;margin-top:12px;letter-spacing:0.5px}
+.lang-bar{display:flex;justify-content:center;gap:8px;margin-top:16px}
+.lang-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:#fff;padding:5px 14px;border-radius:16px;font-size:13px;cursor:pointer;transition:all 0.2s}
+.lang-btn.active{background:#fff;color:#667eea;border-color:#fff;font-weight:600}
+.cta-row{display:flex;justify-content:center;gap:12px;margin-top:24px;flex-wrap:wrap}
+.cta-primary{display:inline-block;background:#fff;color:#667eea;padding:14px 32px;border-radius:28px;font-size:16px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:transform 0.15s}
+.cta-primary:hover{transform:translateY(-2px)}
+.cta-secondary{display:inline-block;background:rgba(255,255,255,0.15);color:#fff;padding:14px 28px;border-radius:28px;font-size:15px;font-weight:500;border:1px solid rgba(255,255,255,0.3);transition:all 0.2s}
+.cta-secondary:hover{background:rgba(255,255,255,0.25)}
+
+/* Sections */
+.section{max-width:800px;margin:0 auto;padding:48px 20px}
+.section-title{font-size:26px;font-weight:700;text-align:center;margin-bottom:8px;color:#333}
+.section-sub{font-size:15px;text-align:center;color:#777;margin-bottom:32px;max-width:550px;margin-left:auto;margin-right:auto;line-height:1.5}
+
+/* Features grid */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.feature-card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);transition:transform 0.2s}
+.feature-card:hover{transform:translateY(-3px)}
+.feature-icon{font-size:32px;margin-bottom:12px}
+.feature-card h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.feature-card p{font-size:13px;color:#666;line-height:1.5}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:20px;max-width:560px;margin:0 auto}
+.step-item{display:flex;gap:16px;align-items:flex-start}
+.step-num{width:36px;height:36px;min-width:36px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+.step-item h4{font-size:15px;font-weight:600;margin-bottom:2px}
+.step-item p{font-size:13px;color:#666;line-height:1.5}
+
+/* Install */
+.install-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.install-card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
+.install-card h3{font-size:16px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.install-card ol{padding-left:20px;font-size:13px;color:#555;line-height:1.8}
+.install-card .note{font-size:12px;color:#888;margin-top:8px;font-style:italic}
+
+/* Providers */
+.providers{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:16px}
+.provider-pill{background:#fff;border:1px solid #e0e0e0;padding:6px 16px;border-radius:20px;font-size:13px;color:#555;display:flex;align-items:center;gap:6px}
+.provider-pill .free{background:#4caf50;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600}
+
+/* Divider */
+.divider{border:none;border-top:1px solid #eee;margin:0}
+
+/* Map browser */
+.map-browser{background:#fff;border-top:1px solid #eee}
+.map-section{max-width:640px;margin:0 auto;padding:32px 16px 48px}
+.map-section-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:16px}
+.search-bar{padding:0 0 12px;position:sticky;top:0;z-index:100;background:#fff}
+.search-input{width:100%;padding:10px 14px;border:1.5px solid #ddd;border-radius:12px;font-size:15px;outline:none;transition:border-color 0.2s;font-family:inherit}
+.search-input:focus{border-color:#667eea}
+.search-input::placeholder{color:#aaa}
+.chips-row{display:flex;gap:6px;padding:0 0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chip{display:inline-block;padding:6px 14px;border-radius:20px;font-size:13px;border:1.5px solid #ddd;background:#fff;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.chip.active{background:#667eea;color:#fff;border-color:#667eea}
+.count{font-size:12px;color:#999;text-align:center;padding:6px 0}
+.map-card{background:#f8f9fc;border-radius:14px;padding:14px 16px;margin-bottom:10px;text-decoration:none;color:inherit;display:block;transition:all 0.15s;border:1px solid #eee}
+.map-card:hover{border-color:#667eea;box-shadow:0 2px 8px rgba(102,126,234,0.1)}
+.map-card h2{font-size:15px;color:#333;margin-bottom:3px;font-weight:600}
+.map-card .meta{font-size:12px;color:#888;line-height:1.5}
+.badge{display:inline-block;background:#667eea;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;margin:2px 2px 0 0}
+.empty{text-align:center;padding:40px 20px;color:#aaa}
+.empty .icon{font-size:40px;margin-bottom:10px}
+
+/* Footer */
+.footer{text-align:center;padding:32px 20px;font-size:12px;color:#aaa;background:#f0f1f5}
+.footer a{color:#667eea}
+
+@media(max-width:480px){
+  .hero h1{font-size:32px}
+  .hero .tagline{font-size:15px}
+  .features{grid-template-columns:1fr}
+  .install-cards{grid-template-columns:1fr}
 }
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white; padding: 40px 20px 20px; text-align: center;
-}
-.header h1 { font-size: 28px; font-weight: 700; }
-.header p { font-size: 14px; opacity: 0.85; margin-top: 6px; }
-.lang-bar {
-  display: flex; justify-content: center; gap: 8px; margin-top: 12px;
-}
-.lang-btn {
-  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
-  color: white; padding: 4px 12px; border-radius: 14px; font-size: 12px;
-  cursor: pointer; transition: all 0.2s;
-}
-.lang-btn.active { background: white; color: #667eea; border-color: white; }
-.install-banner {
-  background: linear-gradient(135deg, #667eea20, #764ba220);
-  border: 1px solid #667eea40; border-radius: 12px;
-  padding: 14px 16px; margin: 12px auto; max-width: 568px;
-  font-size: 13px; color: #444; line-height: 1.6;
-}
-.install-banner strong { display: block; margin-bottom: 4px; color: #333; }
-.install-banner .step { margin: 2px 0; }
-.search-bar {
-  padding: 12px 16px; background: white; border-bottom: 1px solid #eee;
-  position: sticky; top: 0; z-index: 100; max-width: 600px; margin: 0 auto;
-}
-.search-input {
-  width: 100%; padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 12px;
-  font-size: 15px; outline: none; transition: border-color 0.2s; font-family: inherit;
-}
-.search-input:focus { border-color: #667eea; }
-.search-input::placeholder { color: #aaa; }
-.city-chips {
-  display: flex; gap: 6px; padding: 10px 16px; overflow-x: auto;
-  -webkit-overflow-scrolling: touch; max-width: 600px; margin: 0 auto;
-}
-.chip {
-  display: inline-block; padding: 6px 14px; border-radius: 20px;
-  font-size: 13px; border: 1.5px solid #ddd; background: white;
-  cursor: pointer; white-space: nowrap; transition: all 0.2s;
-}
-.chip.active { background: #667eea; color: white; border-color: #667eea; }
-.year-chips {
-  display: flex; gap: 6px; padding: 10px 16px 0; overflow-x: auto;
-  -webkit-overflow-scrolling: touch; max-width: 600px; margin: 0 auto;
-}
-.maps-grid { padding: 12px 16px; max-width: 600px; margin: 0 auto; }
-.map-card {
-  background: white; border-radius: 16px; padding: 16px 18px;
-  margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  text-decoration: none; color: inherit; display: block; transition: transform 0.15s;
-}
-.map-card:active { transform: scale(0.98); }
-.map-card h2 { font-size: 16px; color: #333; margin-bottom: 4px; }
-.map-card .meta { font-size: 13px; color: #888; line-height: 1.5; }
-.badge {
-  display: inline-block; background: #667eea; color: white;
-  padding: 2px 8px; border-radius: 10px; font-size: 11px; margin: 2px 2px 0 0;
-}
-.empty { text-align: center; padding: 60px 20px; color: #aaa; }
-.empty .icon { font-size: 48px; margin-bottom: 12px; }
-.count { font-size: 12px; color: #999; text-align: center; padding: 8px; }
-.cta-bar {
-  text-align: center; padding: 16px; max-width: 600px; margin: 0 auto;
-}
-.cta-btn {
-  display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white; padding: 12px 28px; border-radius: 24px; font-size: 15px;
-  font-weight: 600; text-decoration: none; transition: transform 0.15s;
-  box-shadow: 0 4px 12px rgba(102,126,234,0.3);
-}
-.cta-btn:active { transform: scale(0.97); }
-.footer {
-  text-align: center; padding: 24px 16px; font-size: 12px; color: #aaa;
-  max-width: 600px; margin: 0 auto;
-}
-.footer a { color: #667eea; text-decoration: none; }
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>Plan Viewer</h1>
-  <p id="subtitle">AI-powered leisure activity planner</p>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Planner</h1>
+  <p class="tagline" id="tagline">Plan your perfect trip with AI. Discover activities, events, and hidden gems in any city.</p>
+  <span class="version">PWA &middot; FREE &middot; NO ADS</span>
   <div class="lang-bar">
     <button class="lang-btn active" onclick="setLang('en')">EN</button>
     <button class="lang-btn" onclick="setLang('it')">IT</button>
     <button class="lang-btn" onclick="setLang('es')">ES</button>
   </div>
+  <div class="cta-row">
+    <a class="cta-primary" href="app/" id="cta-open">Open Planner</a>
+    <a class="cta-secondary" href="#install" id="cta-install">Install on Phone</a>
+  </div>
 </div>
 
-<div class="cta-bar">
-  <a class="cta-btn" href="app/" id="cta-open">Open Planner</a>
+<!-- FEATURES -->
+<div class="section">
+  <h2 class="section-title" id="feat-title">Features</h2>
+  <p class="section-sub" id="feat-sub">Everything you need to plan unforgettable leisure time, powered by AI.</p>
+  <div class="features" id="features-grid"></div>
 </div>
 
-<div class="install-banner" id="install-tip"></div>
+<hr class="divider">
 
-<div class="search-bar">
-  <input class="search-input" type="text" id="search" oninput="filterMaps()">
+<!-- HOW IT WORKS -->
+<div class="section">
+  <h2 class="section-title" id="how-title">How It Works</h2>
+  <p class="section-sub" id="how-sub">From idea to interactive map in under a minute.</p>
+  <div class="steps" id="steps-list"></div>
 </div>
-<div class="year-chips" id="year-chips"></div>
-<div class="city-chips" id="chips"></div>
-<div class="count" id="count"></div>
-<div class="maps-grid" id="maps"></div>
 
+<hr class="divider">
+
+<!-- PROVIDERS -->
+<div class="section">
+  <h2 class="section-title" id="prov-title">AI Providers</h2>
+  <p class="section-sub" id="prov-sub">Choose your favorite AI. Two providers are completely free.</p>
+  <div class="providers">
+    <span class="provider-pill">Claude</span>
+    <span class="provider-pill">Gemini <span class="free">FREE</span></span>
+    <span class="provider-pill">Groq <span class="free">FREE</span></span>
+    <span class="provider-pill">Grok</span>
+    <span class="provider-pill">DeepSeek</span>
+    <span class="provider-pill">Mistral</span>
+    <span class="provider-pill">Cohere</span>
+    <span class="provider-pill">Perplexity</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- INSTALL -->
+<div class="section" id="install">
+  <h2 class="section-title" id="inst-title">Install</h2>
+  <p class="section-sub" id="inst-sub">No app store needed. Install directly from your browser.</p>
+  <div class="install-cards" id="install-cards"></div>
+</div>
+
+<hr class="divider">
+
+<!-- MAP BROWSER -->
+<div class="map-browser">
+  <div class="map-section">
+    <h2 class="map-section-title" id="browse-title">Browse Maps</h2>
+    <div class="search-bar">
+      <input class="search-input" type="text" id="search" oninput="filterMaps()">
+    </div>
+    <div class="chips-row" id="year-chips"></div>
+    <div class="chips-row" id="chips"></div>
+    <div class="count" id="count"></div>
+    <div id="maps"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
 <div class="footer">
   <a href="app/privacy-policy.html" id="footer-privacy">Privacy Policy</a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/ccancellieri" target="_blank">GitHub</a>
+  <a href="https://github.com/ccancellieri/plan-viewer" target="_blank">GitHub</a>
   &nbsp;&middot;&nbsp;
   &copy; 2026 Carlo Cancellieri
 </div>
@@ -131,8 +183,36 @@ body {
 <script>
 var I18N = {
   en: {
-    subtitle: 'AI-powered leisure activity planner',
+    tagline: 'Plan your perfect trip with AI. Discover activities, events, and hidden gems in any city.',
     open: 'Open Planner',
+    installBtn: 'Install on Phone',
+    featTitle: 'Features',
+    featSub: 'Everything you need to plan unforgettable leisure time, powered by AI.',
+    features: [
+      { icon: '\uD83E\uDD16', title: 'Multi-AI Powered', desc: 'Choose from 9 AI providers. Groq and Gemini are free. Each provider brings unique strengths to find the best activities.' },
+      { icon: '\uD83D\uDDFA\uFE0F', title: 'Interactive Maps', desc: 'View activities on beautiful Leaflet maps with category filters, timeline view, and swipeable cards.' },
+      { icon: '\uD83D\uDD0D', title: 'Web Search Boost', desc: 'Optional Tavily or Serper integration for real-time events, festivals, and up-to-date local info.' },
+      { icon: '\uD83D\uDCF1', title: 'Works Everywhere', desc: 'Install as an app on iPhone, Android, or desktop. Works offline with saved maps. No app store needed.' },
+      { icon: '\uD83C\uDF10', title: 'Multi-Language', desc: 'Available in English, Italian, and Spanish. Auto-detects your language.' },
+      { icon: '\uD83D\uDD12', title: 'Privacy First', desc: 'No servers, no tracking, no ads. All data stays on your device. API keys never leave your phone.' },
+    ],
+    howTitle: 'How It Works',
+    howSub: 'From idea to interactive map in under a minute.',
+    steps: [
+      { title: 'Choose a City', desc: 'Type a city name or tap GPS to use your current location.' },
+      { title: 'Select Dates', desc: 'Pick start and end dates for your trip.' },
+      { title: 'Pick an AI Provider', desc: 'Choose from 9 AI providers. Groq and Gemini are free to use.' },
+      { title: 'Answer the Questionnaire', desc: 'Tell the AI your mood, budget, preferred times, and interests.' },
+      { title: 'Explore Your Map', desc: 'Browse activities on an interactive map. Filter by category, view timeline, or swipe cards. Save, share, or export.' },
+    ],
+    provTitle: 'AI Providers',
+    provSub: 'Choose your favorite AI. Two providers are completely free.',
+    instTitle: 'Install',
+    instSub: 'No app store needed. Install directly from your browser.',
+    instIOS: { title: 'iPhone / iPad', steps: ['Open Safari and go to the app', 'Tap the Share button (square with arrow)', 'Scroll down, tap "Add to Home Screen"', 'Tap "Add"'], note: 'Safari only. Chrome/Firefox on iOS don\'t support PWA install.' },
+    instAndroid: { title: 'Android', steps: ['Open Chrome and go to the app', 'Tap the three-dot menu (top right)', 'Tap "Install app"', 'Tap "Install"'], note: 'Works with Chrome, Edge, Samsung Internet, and other Chromium browsers.' },
+    instDesktop: { title: 'Desktop', steps: ['Open Chrome or Edge', 'Click the install icon in the address bar', 'Click "Install"'], note: 'Works on Windows, macOS, Linux, and ChromeOS.' },
+    browseTitle: 'Browse Maps',
     search: 'Search by city or date...',
     all: 'All',
     allCities: 'All',
@@ -143,13 +223,38 @@ var I18N = {
     noMaps: 'No maps yet. Open Planner to plan your next weekend!',
     noResults: 'No maps found.',
     privacy: 'Privacy Policy',
-    installTitle: 'Install on your phone:',
-    installIOS: 'iPhone/iPad: In Safari tap Share then "Add to Home Screen".',
-    installAndroid: 'Android: In Chrome tap Menu then "Install app".',
   },
   it: {
-    subtitle: 'Pianificatore di attivita con AI e mappe interattive',
+    tagline: 'Pianifica il viaggio perfetto con l\'AI. Scopri attivita, eventi e posti nascosti in qualsiasi citta.',
     open: 'Apri Planner',
+    installBtn: 'Installa sul Telefono',
+    featTitle: 'Funzionalita',
+    featSub: 'Tutto il necessario per pianificare il tempo libero, con l\'aiuto dell\'AI.',
+    features: [
+      { icon: '\uD83E\uDD16', title: 'Multi-AI', desc: 'Scegli tra 9 provider AI. Groq e Gemini sono gratuiti. Ogni provider ha i suoi punti di forza.' },
+      { icon: '\uD83D\uDDFA\uFE0F', title: 'Mappe Interattive', desc: 'Visualizza le attivita su mappe Leaflet con filtri per categoria, timeline e schede scorrevoli.' },
+      { icon: '\uD83D\uDD0D', title: 'Ricerca Web', desc: 'Integrazione opzionale con Tavily o Serper per eventi in tempo reale e info aggiornate.' },
+      { icon: '\uD83D\uDCF1', title: 'Ovunque', desc: 'Installabile su iPhone, Android o desktop. Funziona offline con le mappe salvate. Nessun app store.' },
+      { icon: '\uD83C\uDF10', title: 'Multilingua', desc: 'Disponibile in inglese, italiano e spagnolo. Rileva automaticamente la tua lingua.' },
+      { icon: '\uD83D\uDD12', title: 'Privacy', desc: 'Nessun server, nessun tracciamento, nessuna pubblicita. Tutti i dati restano sul tuo dispositivo.' },
+    ],
+    howTitle: 'Come Funziona',
+    howSub: 'Da un\'idea a una mappa interattiva in meno di un minuto.',
+    steps: [
+      { title: 'Scegli una Citta', desc: 'Scrivi il nome di una citta o tocca GPS per usare la tua posizione.' },
+      { title: 'Seleziona le Date', desc: 'Scegli le date di inizio e fine del viaggio.' },
+      { title: 'Scegli un Provider AI', desc: 'Scegli tra 9 provider AI. Groq e Gemini sono gratuiti.' },
+      { title: 'Compila il Questionario', desc: 'Indica umore, budget, orari preferiti e interessi.' },
+      { title: 'Esplora la Mappa', desc: 'Sfoglia le attivita sulla mappa interattiva. Filtra per categoria, visualizza la timeline o scorri le schede. Salva, condividi o esporta.' },
+    ],
+    provTitle: 'Provider AI',
+    provSub: 'Scegli la tua AI preferita. Due provider sono completamente gratuiti.',
+    instTitle: 'Installa',
+    instSub: 'Nessun app store. Installa direttamente dal browser.',
+    instIOS: { title: 'iPhone / iPad', steps: ['Apri Safari e vai all\'app', 'Tocca il pulsante Condividi (quadrato con freccia)', 'Scorri e tocca "Aggiungi alla schermata Home"', 'Tocca "Aggiungi"'], note: 'Solo Safari. Chrome/Firefox su iOS non supportano l\'installazione PWA.' },
+    instAndroid: { title: 'Android', steps: ['Apri Chrome e vai all\'app', 'Tocca il menu tre puntini (in alto a destra)', 'Tocca "Installa app"', 'Tocca "Installa"'], note: 'Funziona con Chrome, Edge, Samsung Internet e altri browser Chromium.' },
+    instDesktop: { title: 'Desktop', steps: ['Apri Chrome o Edge', 'Clicca l\'icona di installazione nella barra indirizzi', 'Clicca "Installa"'], note: 'Funziona su Windows, macOS, Linux e ChromeOS.' },
+    browseTitle: 'Sfoglia le Mappe',
     search: 'Cerca per citta o periodo...',
     all: 'Tutti',
     allCities: 'Tutte',
@@ -160,13 +265,38 @@ var I18N = {
     noMaps: 'Nessuna mappa ancora. Apri Planner per pianificare il prossimo weekend!',
     noResults: 'Nessuna mappa trovata.',
     privacy: 'Privacy Policy',
-    installTitle: 'Installa sul telefono:',
-    installIOS: 'iPhone/iPad: In Safari tocca Condividi poi "Aggiungi alla schermata Home".',
-    installAndroid: 'Android: In Chrome tocca Menu poi "Installa app".',
   },
   es: {
-    subtitle: 'Planificador de actividades con IA y mapas interactivos',
+    tagline: 'Planifica el viaje perfecto con IA. Descubre actividades, eventos y rincones escondidos en cualquier ciudad.',
     open: 'Abrir Planner',
+    installBtn: 'Instalar en el Telefono',
+    featTitle: 'Funcionalidades',
+    featSub: 'Todo lo que necesitas para planificar tu tiempo libre, impulsado por IA.',
+    features: [
+      { icon: '\uD83E\uDD16', title: 'Multi-IA', desc: 'Elige entre 9 proveedores de IA. Groq y Gemini son gratuitos. Cada uno tiene sus fortalezas.' },
+      { icon: '\uD83D\uDDFA\uFE0F', title: 'Mapas Interactivos', desc: 'Visualiza actividades en mapas Leaflet con filtros por categoria, linea de tiempo y tarjetas deslizantes.' },
+      { icon: '\uD83D\uDD0D', title: 'Busqueda Web', desc: 'Integracion opcional con Tavily o Serper para eventos en tiempo real e info actualizada.' },
+      { icon: '\uD83D\uDCF1', title: 'En Todas Partes', desc: 'Instalable en iPhone, Android o escritorio. Funciona sin conexion con mapas guardados. Sin tienda de apps.' },
+      { icon: '\uD83C\uDF10', title: 'Multilenguaje', desc: 'Disponible en ingles, italiano y espanol. Detecta automaticamente tu idioma.' },
+      { icon: '\uD83D\uDD12', title: 'Privacidad', desc: 'Sin servidores, sin rastreo, sin anuncios. Todos los datos permanecen en tu dispositivo.' },
+    ],
+    howTitle: 'Como Funciona',
+    howSub: 'De una idea a un mapa interactivo en menos de un minuto.',
+    steps: [
+      { title: 'Elige una Ciudad', desc: 'Escribe el nombre de una ciudad o toca GPS para usar tu ubicacion.' },
+      { title: 'Selecciona Fechas', desc: 'Elige las fechas de inicio y fin del viaje.' },
+      { title: 'Elige un Proveedor IA', desc: 'Elige entre 9 proveedores de IA. Groq y Gemini son gratuitos.' },
+      { title: 'Completa el Cuestionario', desc: 'Indica tu estado de animo, presupuesto, horarios preferidos e intereses.' },
+      { title: 'Explora tu Mapa', desc: 'Navega las actividades en el mapa interactivo. Filtra por categoria, ve la linea de tiempo o desliza tarjetas. Guarda, comparte o exporta.' },
+    ],
+    provTitle: 'Proveedores de IA',
+    provSub: 'Elige tu IA favorita. Dos proveedores son completamente gratuitos.',
+    instTitle: 'Instalar',
+    instSub: 'Sin tienda de apps. Instala directamente desde el navegador.',
+    instIOS: { title: 'iPhone / iPad', steps: ['Abre Safari y ve a la app', 'Toca el boton Compartir (cuadrado con flecha)', 'Desplazate y toca "Agregar a pantalla de inicio"', 'Toca "Agregar"'], note: 'Solo Safari. Chrome/Firefox en iOS no soportan la instalacion PWA.' },
+    instAndroid: { title: 'Android', steps: ['Abre Chrome y ve a la app', 'Toca el menu de tres puntos (arriba a la derecha)', 'Toca "Instalar app"', 'Toca "Instalar"'], note: 'Funciona con Chrome, Edge, Samsung Internet y otros navegadores Chromium.' },
+    instDesktop: { title: 'Escritorio', steps: ['Abre Chrome o Edge', 'Haz clic en el icono de instalacion en la barra de direcciones', 'Haz clic en "Instalar"'], note: 'Funciona en Windows, macOS, Linux y ChromeOS.' },
+    browseTitle: 'Explorar Mapas',
     search: 'Buscar por ciudad o fecha...',
     all: 'Todos',
     allCities: 'Todas',
@@ -177,9 +307,6 @@ var I18N = {
     noMaps: 'No hay mapas aun. Abre Planner para planificar tu proximo fin de semana!',
     noResults: 'No se encontraron mapas.',
     privacy: 'Politica de Privacidad',
-    installTitle: 'Instalar en tu telefono:',
-    installIOS: 'iPhone/iPad: En Safari toca Compartir y luego "Agregar a pantalla de inicio".',
-    installAndroid: 'Android: En Chrome toca Menu y luego "Instalar app".',
   },
 };
 
@@ -209,33 +336,99 @@ function setLang(l) {
 }
 
 function applyLang() {
-  document.getElementById('subtitle').textContent = t('subtitle');
+  document.getElementById('tagline').textContent = t('tagline');
   document.getElementById('cta-open').textContent = t('open');
+  document.getElementById('cta-install').textContent = t('installBtn');
+  document.getElementById('feat-title').textContent = t('featTitle');
+  document.getElementById('feat-sub').textContent = t('featSub');
+  document.getElementById('how-title').textContent = t('howTitle');
+  document.getElementById('how-sub').textContent = t('howSub');
+  document.getElementById('prov-title').textContent = t('provTitle');
+  document.getElementById('prov-sub').textContent = t('provSub');
+  document.getElementById('inst-title').textContent = t('instTitle');
+  document.getElementById('inst-sub').textContent = t('instSub');
+  document.getElementById('browse-title').textContent = t('browseTitle');
   document.getElementById('search').placeholder = t('search');
   document.getElementById('footer-privacy').textContent = t('privacy');
 
-  var isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  var tip = document.getElementById('install-tip');
-  if (isStandalone) {
-    tip.style.display = 'none';
-  } else {
-    tip.textContent = '';
-    var title = document.createElement('strong');
-    title.textContent = t('installTitle');
-    tip.appendChild(title);
-    var iosStep = document.createElement('div');
-    iosStep.className = 'step';
-    iosStep.textContent = t('installIOS');
-    tip.appendChild(iosStep);
-    var androidStep = document.createElement('div');
-    androidStep.className = 'step';
-    androidStep.textContent = t('installAndroid');
-    tip.appendChild(androidStep);
-  }
-
+  renderFeatures();
+  renderSteps();
+  renderInstallCards();
   buildYearChips();
   buildCityChips();
   filterMaps();
+}
+
+function renderFeatures() {
+  var grid = document.getElementById('features-grid');
+  grid.textContent = '';
+  var features = I18N[lang].features;
+  features.forEach(function(f) {
+    var card = document.createElement('div');
+    card.className = 'feature-card';
+    var icon = document.createElement('div');
+    icon.className = 'feature-icon';
+    icon.textContent = f.icon;
+    card.appendChild(icon);
+    var h3 = document.createElement('h3');
+    h3.textContent = f.title;
+    card.appendChild(h3);
+    var p = document.createElement('p');
+    p.textContent = f.desc;
+    card.appendChild(p);
+    grid.appendChild(card);
+  });
+}
+
+function renderSteps() {
+  var list = document.getElementById('steps-list');
+  list.textContent = '';
+  var steps = I18N[lang].steps;
+  steps.forEach(function(s, i) {
+    var item = document.createElement('div');
+    item.className = 'step-item';
+    var num = document.createElement('div');
+    num.className = 'step-num';
+    num.textContent = i + 1;
+    item.appendChild(num);
+    var text = document.createElement('div');
+    var h4 = document.createElement('h4');
+    h4.textContent = s.title;
+    text.appendChild(h4);
+    var p = document.createElement('p');
+    p.textContent = s.desc;
+    text.appendChild(p);
+    item.appendChild(text);
+    list.appendChild(item);
+  });
+}
+
+function renderInstallCards() {
+  var container = document.getElementById('install-cards');
+  container.textContent = '';
+  var configs = [I18N[lang].instIOS, I18N[lang].instAndroid, I18N[lang].instDesktop];
+  var icons = ['\uD83D\uDCF1', '\uD83E\uDD16', '\uD83D\uDCBB'];
+  configs.forEach(function(cfg, idx) {
+    var card = document.createElement('div');
+    card.className = 'install-card';
+    var h3 = document.createElement('h3');
+    h3.textContent = icons[idx] + ' ' + cfg.title;
+    card.appendChild(h3);
+    var ol = document.createElement('ol');
+    cfg.steps.forEach(function(step) {
+      var li = document.createElement('li');
+      li.textContent = step;
+      ol.appendChild(li);
+    });
+    card.appendChild(ol);
+    if (cfg.note) {
+      var note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = cfg.note;
+      card.appendChild(note);
+    }
+    container.appendChild(card);
+  });
 }
 
 fetch('maps/registry.json')
@@ -262,12 +455,11 @@ fetch('maps/registry.json')
 
 function buildYearChips() {
   var yearSet = {};
-  MAPS.forEach(function(m) {
-    if (m.date_start) yearSet[m.date_start.substring(0, 4)] = true;
-  });
+  MAPS.forEach(function(m) { if (m.date_start) yearSet[m.date_start.substring(0, 4)] = true; });
   var years = Object.keys(yearSet).sort().reverse();
   var container = document.getElementById('year-chips');
   container.textContent = '';
+  if (years.length === 0) return;
   var allChip = document.createElement('span');
   allChip.className = 'chip' + (!activeYear ? ' active' : '');
   allChip.textContent = t('all');
@@ -298,6 +490,7 @@ function buildCityChips() {
   activeCity = null;
   var container = document.getElementById('chips');
   container.textContent = '';
+  if (cities.length === 0) return;
   var allChip = document.createElement('span');
   allChip.className = 'chip active';
   allChip.textContent = t('allCities');
@@ -373,16 +566,13 @@ function filterMaps() {
     var card = document.createElement('a');
     card.className = 'map-card';
     card.href = 'maps/' + m.file;
-
     var h2 = document.createElement('h2');
     h2.textContent = m.title;
     card.appendChild(h2);
-
     var meta = document.createElement('div');
     meta.className = 'meta';
     meta.textContent = '\uD83D\uDCCD ' + m.location + ' \u2022 \uD83D\uDCC5 ' + m.date_label + ' \u2022 \uD83C\uDFAF ' + m.activities + ' ' + t('activities');
     card.appendChild(meta);
-
     if (m.categories && m.categories.length > 0) {
       var badges = document.createElement('div');
       badges.style.marginTop = '6px';
