@@ -5,92 +5,165 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#667eea">
 <meta name="description" content="AI-powered leisure activity planner with interactive maps. Plan trips, discover events, explore cities.">
+<meta property="og:title" content="Planner - AI Activity Planner">
+<meta property="og:description" content="Plan your perfect trip with AI. Discover activities, events, and hidden gems in any city.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ccancellieri.github.io/plan-viewer/">
 <link rel="icon" type="image/png" href="app/favicon.png">
 <title>Planner - AI Activity Planner</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8f9fc;color:#333;-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8f9fc;color:#333;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:#667eea;text-decoration:none}
 
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fade-up{opacity:0;animation:fadeUp 0.6s ease forwards}
+.fade-up.d1{animation-delay:0.1s}.fade-up.d2{animation-delay:0.2s}.fade-up.d3{animation-delay:0.3s}.fade-up.d4{animation-delay:0.4s}
+
 /* Hero */
-.hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-align:center;padding:60px 20px 48px;position:relative;overflow:hidden}
-.hero::after{content:'';position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:120%;height:80px;background:#f8f9fc;border-radius:50% 50% 0 0}
-.hero h1{font-size:42px;font-weight:800;letter-spacing:-0.5px}
-.hero .tagline{font-size:18px;opacity:0.9;margin-top:8px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.5}
-.hero .version{display:inline-block;background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:12px;font-size:11px;margin-top:12px;letter-spacing:0.5px}
-.lang-bar{display:flex;justify-content:center;gap:8px;margin-top:16px}
-.lang-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:#fff;padding:5px 14px;border-radius:16px;font-size:13px;cursor:pointer;transition:all 0.2s}
-.lang-btn.active{background:#fff;color:#667eea;border-color:#fff;font-weight:600}
-.cta-row{display:flex;justify-content:center;gap:12px;margin-top:24px;flex-wrap:wrap}
-.cta-primary{display:inline-block;background:#fff;color:#667eea;padding:14px 32px;border-radius:28px;font-size:16px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:transform 0.15s}
-.cta-primary:hover{transform:translateY(-2px)}
-.cta-secondary{display:inline-block;background:rgba(255,255,255,0.15);color:#fff;padding:14px 28px;border-radius:28px;font-size:15px;font-weight:500;border:1px solid rgba(255,255,255,0.3);transition:all 0.2s}
-.cta-secondary:hover{background:rgba(255,255,255,0.25)}
+.hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-align:center;padding:72px 24px 64px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 50%,rgba(255,255,255,0.08) 0%,transparent 50%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:#f8f9fc;clip-path:ellipse(55% 100% at 50% 100%)}
+.hero h1{font-size:48px;font-weight:800;letter-spacing:-1px;text-shadow:0 2px 12px rgba(0,0,0,0.15)}
+.hero .tagline{font-size:18px;opacity:0.92;margin-top:12px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.6}
+.hero .badges{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+.hero .badge-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.18);padding:5px 14px;border-radius:20px;font-size:12px;letter-spacing:0.3px;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.15)}
+.lang-bar{display:flex;justify-content:center;gap:8px;margin-top:20px}
+.lang-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 16px;border-radius:18px;font-size:13px;cursor:pointer;transition:all 0.25s;backdrop-filter:blur(4px)}
+.lang-btn:hover{background:rgba(255,255,255,0.25)}
+.lang-btn.active{background:#fff;color:#667eea;border-color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.cta-row{display:flex;justify-content:center;gap:14px;margin-top:28px;flex-wrap:wrap}
+.cta-primary{display:inline-block;background:#fff;color:#667eea;padding:15px 36px;border-radius:30px;font-size:16px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,0.18);transition:all 0.2s}
+.cta-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.22)}
+.cta-secondary{display:inline-block;background:rgba(255,255,255,0.12);color:#fff;padding:15px 30px;border-radius:30px;font-size:15px;font-weight:500;border:1.5px solid rgba(255,255,255,0.3);transition:all 0.25s;backdrop-filter:blur(4px)}
+.cta-secondary:hover{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.5)}
 
 /* Sections */
-.section{max-width:800px;margin:0 auto;padding:48px 20px}
-.section-title{font-size:26px;font-weight:700;text-align:center;margin-bottom:8px;color:#333}
-.section-sub{font-size:15px;text-align:center;color:#777;margin-bottom:32px;max-width:550px;margin-left:auto;margin-right:auto;line-height:1.5}
+.section{max-width:840px;margin:0 auto;padding:56px 24px}
+.section-title{font-size:28px;font-weight:700;text-align:center;margin-bottom:10px;color:#222;letter-spacing:-0.3px}
+.section-sub{font-size:15px;text-align:center;color:#777;margin-bottom:36px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.6}
 
 /* Features grid */
-.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
-.feature-card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);transition:transform 0.2s}
-.feature-card:hover{transform:translateY(-3px)}
-.feature-icon{font-size:32px;margin-bottom:12px}
-.feature-card h3{font-size:16px;font-weight:600;margin-bottom:6px}
-.feature-card p{font-size:13px;color:#666;line-height:1.5}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature-card{background:#fff;border-radius:18px;padding:28px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.03);transition:all 0.25s;border:1px solid rgba(0,0,0,0.04)}
+.feature-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(102,126,234,0.1);border-color:rgba(102,126,234,0.15)}
+.feature-icon{font-size:36px;margin-bottom:14px}
+.feature-card h3{font-size:16px;font-weight:700;margin-bottom:8px;color:#222}
+.feature-card p{font-size:13.5px;color:#666;line-height:1.6}
+
+/* Highlights bar */
+.highlights{background:linear-gradient(135deg,#667eea08,#764ba210);border-top:1px solid #eee;border-bottom:1px solid #eee}
+.highlights-inner{max-width:840px;margin:0 auto;padding:36px 24px;display:flex;justify-content:center;gap:48px;flex-wrap:wrap;text-align:center}
+.highlight{display:flex;flex-direction:column;align-items:center;gap:4px}
+.highlight .num{font-size:32px;font-weight:800;color:#667eea;letter-spacing:-0.5px}
+.highlight .label{font-size:13px;color:#888;font-weight:500}
 
 /* Steps */
-.steps{display:flex;flex-direction:column;gap:20px;max-width:560px;margin:0 auto}
-.step-item{display:flex;gap:16px;align-items:flex-start}
-.step-num{width:36px;height:36px;min-width:36px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
-.step-item h4{font-size:15px;font-weight:600;margin-bottom:2px}
-.step-item p{font-size:13px;color:#666;line-height:1.5}
+.steps{display:flex;flex-direction:column;gap:24px;max-width:540px;margin:0 auto}
+.step-item{display:flex;gap:18px;align-items:flex-start}
+.step-num{width:40px;height:40px;min-width:40px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;box-shadow:0 3px 10px rgba(102,126,234,0.25)}
+.step-text h4{font-size:16px;font-weight:600;margin-bottom:3px;color:#222}
+.step-text p{font-size:13.5px;color:#666;line-height:1.5}
 
 /* Install */
-.install-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.install-card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
-.install-card h3{font-size:16px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.install-card ol{padding-left:20px;font-size:13px;color:#555;line-height:1.8}
-.install-card .note{font-size:12px;color:#888;margin-top:8px;font-style:italic}
+.install-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.install-card{background:#fff;border-radius:18px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.04);transition:all 0.2s}
+.install-card:hover{border-color:rgba(102,126,234,0.2)}
+.install-card h3{font-size:15px;font-weight:700;margin-bottom:12px;color:#222}
+.install-card ol{padding-left:20px;font-size:13px;color:#555;line-height:1.9}
+.install-card .note{font-size:12px;color:#999;margin-top:10px;font-style:italic;line-height:1.4}
 
 /* Providers */
-.providers{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:16px}
-.provider-pill{background:#fff;border:1px solid #e0e0e0;padding:6px 16px;border-radius:20px;font-size:13px;color:#555;display:flex;align-items:center;gap:6px}
-.provider-pill .free{background:#4caf50;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600}
+.providers{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px}
+.provider-pill{background:#fff;border:1.5px solid #e8e8e8;padding:8px 18px;border-radius:24px;font-size:13px;color:#555;display:flex;align-items:center;gap:7px;transition:all 0.2s;font-weight:500}
+.provider-pill:hover{border-color:#667eea;color:#667eea}
+.provider-pill .free{background:linear-gradient(135deg,#43a047,#66bb6a);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:0.3px}
 
 /* Divider */
 .divider{border:none;border-top:1px solid #eee;margin:0}
 
 /* Map browser */
 .map-browser{background:#fff;border-top:1px solid #eee}
-.map-section{max-width:640px;margin:0 auto;padding:32px 16px 48px}
-.map-section-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:16px}
-.search-bar{padding:0 0 12px;position:sticky;top:0;z-index:100;background:#fff}
-.search-input{width:100%;padding:10px 14px;border:1.5px solid #ddd;border-radius:12px;font-size:15px;outline:none;transition:border-color 0.2s;font-family:inherit}
-.search-input:focus{border-color:#667eea}
-.search-input::placeholder{color:#aaa}
+.map-section{max-width:640px;margin:0 auto;padding:40px 20px 56px}
+.map-section-title{font-size:22px;font-weight:700;text-align:center;margin-bottom:20px;color:#222}
+.search-bar{padding:0 0 14px;position:sticky;top:0;z-index:100;background:#fff}
+.search-input{width:100%;padding:11px 16px;border:1.5px solid #ddd;border-radius:14px;font-size:15px;outline:none;transition:all 0.2s;font-family:inherit;background:#fafafa}
+.search-input:focus{border-color:#667eea;background:#fff;box-shadow:0 0 0 3px rgba(102,126,234,0.1)}
+.search-input::placeholder{color:#bbb}
 .chips-row{display:flex;gap:6px;padding:0 0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.chip{display:inline-block;padding:6px 14px;border-radius:20px;font-size:13px;border:1.5px solid #ddd;background:#fff;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.chip{display:inline-block;padding:7px 16px;border-radius:22px;font-size:13px;border:1.5px solid #ddd;background:#fff;cursor:pointer;white-space:nowrap;transition:all 0.2s;font-weight:500}
+.chip:hover{border-color:#667eea;color:#667eea}
 .chip.active{background:#667eea;color:#fff;border-color:#667eea}
-.count{font-size:12px;color:#999;text-align:center;padding:6px 0}
-.map-card{background:#f8f9fc;border-radius:14px;padding:14px 16px;margin-bottom:10px;text-decoration:none;color:inherit;display:block;transition:all 0.15s;border:1px solid #eee}
-.map-card:hover{border-color:#667eea;box-shadow:0 2px 8px rgba(102,126,234,0.1)}
-.map-card h2{font-size:15px;color:#333;margin-bottom:3px;font-weight:600}
-.map-card .meta{font-size:12px;color:#888;line-height:1.5}
-.badge{display:inline-block;background:#667eea;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;margin:2px 2px 0 0}
-.empty{text-align:center;padding:40px 20px;color:#aaa}
-.empty .icon{font-size:40px;margin-bottom:10px}
+.count{font-size:12px;color:#aaa;text-align:center;padding:6px 0}
+.map-card{background:#fafbfe;border-radius:16px;padding:16px 18px;margin-bottom:10px;text-decoration:none;color:inherit;display:block;transition:all 0.2s;border:1px solid #eee}
+.map-card:hover{border-color:#667eea;box-shadow:0 4px 14px rgba(102,126,234,0.08);transform:translateY(-1px)}
+.map-card h2{font-size:15px;color:#222;margin-bottom:4px;font-weight:600}
+.map-card .meta{font-size:12px;color:#888;line-height:1.6}
+.badge{display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:3px 10px;border-radius:10px;font-size:10px;margin:3px 3px 0 0;font-weight:500}
+.empty{text-align:center;padding:48px 20px;color:#bbb}
+.empty .icon{font-size:44px;margin-bottom:12px}
 
 /* Footer */
-.footer{text-align:center;padding:32px 20px;font-size:12px;color:#aaa;background:#f0f1f5}
-.footer a{color:#667eea}
+.footer{text-align:center;padding:36px 24px;font-size:12px;color:#aaa;background:#f0f1f5;border-top:1px solid #e8e8e8}
+.footer a{color:#667eea;font-weight:500}
+.footer a:hover{text-decoration:underline}
 
+/* Dark mode */
+@media(prefers-color-scheme:dark){
+  body{background:#111827;color:#e5e7eb}
+  .section-title{color:#f3f4f6}
+  .section-sub{color:#9ca3af}
+  .feature-card{background:#1f2937;border-color:#374151;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+  .feature-card:hover{box-shadow:0 8px 28px rgba(102,126,234,0.15);border-color:#667eea40}
+  .feature-card h3{color:#f3f4f6}
+  .feature-card p{color:#9ca3af}
+  .highlights{background:#1a2332;border-color:#1f2937}
+  .highlight .label{color:#6b7280}
+  .install-card{background:#1f2937;border-color:#374151}
+  .install-card:hover{border-color:#667eea40}
+  .install-card h3{color:#f3f4f6}
+  .install-card ol{color:#9ca3af}
+  .install-card .note{color:#6b7280}
+  .step-text h4{color:#f3f4f6}
+  .step-text p{color:#9ca3af}
+  .provider-pill{background:#1f2937;border-color:#374151;color:#d1d5db}
+  .provider-pill:hover{border-color:#667eea;color:#667eea}
+  .divider{border-color:#1f2937}
+  .hero::after{background:#111827}
+  .map-browser{background:#1f2937;border-color:#374151}
+  .search-bar{background:#1f2937}
+  .search-input{background:#111827;border-color:#374151;color:#e5e7eb}
+  .search-input:focus{border-color:#667eea;background:#1a2332;box-shadow:0 0 0 3px rgba(102,126,234,0.15)}
+  .search-input::placeholder{color:#6b7280}
+  .chip{background:#111827;border-color:#374151;color:#d1d5db}
+  .chip:hover{border-color:#667eea;color:#667eea}
+  .chip.active{background:#667eea;color:#fff;border-color:#667eea}
+  .map-card{background:#111827;border-color:#374151}
+  .map-card:hover{border-color:#667eea}
+  .map-card h2{color:#f3f4f6}
+  .map-card .meta{color:#9ca3af}
+  .map-section-title{color:#f3f4f6}
+  .footer{background:#0f1724;border-color:#1f2937;color:#6b7280}
+  .count{color:#6b7280}
+  .empty{color:#6b7280}
+}
+
+@media(max-width:768px){
+  .features{grid-template-columns:repeat(2,1fr)}
+  .install-cards{grid-template-columns:1fr}
+  .highlights-inner{gap:32px}
+}
 @media(max-width:480px){
-  .hero h1{font-size:32px}
+  .hero{padding:52px 20px 48px}
+  .hero h1{font-size:34px}
   .hero .tagline{font-size:15px}
   .features{grid-template-columns:1fr}
-  .install-cards{grid-template-columns:1fr}
+  .section{padding:40px 16px}
+  .highlights-inner{gap:24px}
+  .highlight .num{font-size:26px}
 }
 </style>
 </head>
@@ -98,17 +171,32 @@ a{color:#667eea;text-decoration:none}
 
 <!-- HERO -->
 <div class="hero">
-  <h1>Planner</h1>
-  <p class="tagline" id="tagline">Plan your perfect trip with AI. Discover activities, events, and hidden gems in any city.</p>
-  <span class="version">PWA &middot; FREE &middot; NO ADS</span>
-  <div class="lang-bar">
+  <h1 class="fade-up">Planner</h1>
+  <p class="tagline fade-up d1" id="tagline">Plan your perfect trip with AI. Discover activities, events, and hidden gems in any city.</p>
+  <div class="badges fade-up d2">
+    <span class="badge-pill">PWA</span>
+    <span class="badge-pill">100% FREE</span>
+    <span class="badge-pill">NO ADS</span>
+    <span class="badge-pill">OPEN SOURCE</span>
+  </div>
+  <div class="lang-bar fade-up d3">
     <button class="lang-btn active" onclick="setLang('en')">EN</button>
     <button class="lang-btn" onclick="setLang('it')">IT</button>
     <button class="lang-btn" onclick="setLang('es')">ES</button>
   </div>
-  <div class="cta-row">
+  <div class="cta-row fade-up d4">
     <a class="cta-primary" href="app/" id="cta-open">Open Planner</a>
     <a class="cta-secondary" href="#install" id="cta-install">Install on Phone</a>
+  </div>
+</div>
+
+<!-- HIGHLIGHTS BAR -->
+<div class="highlights">
+  <div class="highlights-inner">
+    <div class="highlight"><span class="num">9</span><span class="label" id="hl-providers">AI Providers</span></div>
+    <div class="highlight"><span class="num">3</span><span class="label" id="hl-languages">Languages</span></div>
+    <div class="highlight"><span class="num">0</span><span class="label" id="hl-cost">Cost</span></div>
+    <div class="highlight"><span class="num">0</span><span class="label" id="hl-tracking">Tracking</span></div>
   </div>
 </div>
 
@@ -186,40 +274,36 @@ var I18N = {
     tagline: 'Plan your perfect trip with AI. Discover activities, events, and hidden gems in any city.',
     open: 'Open Planner',
     installBtn: 'Install on Phone',
+    hlProviders: 'AI Providers', hlLanguages: 'Languages', hlCost: 'Cost', hlTracking: 'Tracking',
     featTitle: 'Features',
     featSub: 'Everything you need to plan unforgettable leisure time, powered by AI.',
     features: [
-      { icon: '\uD83E\uDD16', title: 'Multi-AI Powered', desc: 'Choose from 9 AI providers. Groq and Gemini are free. Each provider brings unique strengths to find the best activities.' },
-      { icon: '\uD83D\uDDFA\uFE0F', title: 'Interactive Maps', desc: 'View activities on beautiful Leaflet maps with category filters, timeline view, and swipeable cards.' },
-      { icon: '\uD83D\uDD0D', title: 'Web Search Boost', desc: 'Optional Tavily or Serper integration for real-time events, festivals, and up-to-date local info.' },
-      { icon: '\uD83D\uDCF1', title: 'Works Everywhere', desc: 'Install as an app on iPhone, Android, or desktop. Works offline with saved maps. No app store needed.' },
-      { icon: '\uD83C\uDF10', title: 'Multi-Language', desc: 'Available in English, Italian, and Spanish. Auto-detects your language.' },
-      { icon: '\uD83D\uDD12', title: 'Privacy First', desc: 'No servers, no tracking, no ads. All data stays on your device. API keys never leave your phone.' },
+      { icon: '\uD83E\uDD16', title: 'Multi-AI Powered', desc: 'Choose from 9 AI providers. Groq and Gemini are free. Each brings unique strengths to find the best activities for you.' },
+      { icon: '\uD83D\uDDFA\uFE0F', title: 'Interactive Maps', desc: 'View activities on beautiful Leaflet maps with category filters, timeline view, and swipeable activity cards.' },
+      { icon: '\uD83D\uDD0D', title: 'Web Search Boost', desc: 'Optional Tavily or Serper integration brings real-time events, festivals, and up-to-date local information.' },
+      { icon: '\uD83D\uDCF1', title: 'Works Everywhere', desc: 'Install as a native app on iPhone, Android, or desktop. Works offline with saved maps. No app store needed.' },
+      { icon: '\uD83C\uDF10', title: 'Multi-Language', desc: 'Available in English, Italian, and Spanish. Auto-detects your browser language on first visit.' },
+      { icon: '\uD83D\uDD12', title: 'Privacy First', desc: 'No servers, no tracking, no ads, no cookies. All data stays on your device. API keys never leave your phone.' },
     ],
     howTitle: 'How It Works',
     howSub: 'From idea to interactive map in under a minute.',
     steps: [
-      { title: 'Choose a City', desc: 'Type a city name or tap GPS to use your current location.' },
-      { title: 'Select Dates', desc: 'Pick start and end dates for your trip.' },
-      { title: 'Pick an AI Provider', desc: 'Choose from 9 AI providers. Groq and Gemini are free to use.' },
-      { title: 'Answer the Questionnaire', desc: 'Tell the AI your mood, budget, preferred times, and interests.' },
-      { title: 'Explore Your Map', desc: 'Browse activities on an interactive map. Filter by category, view timeline, or swipe cards. Save, share, or export.' },
+      { title: 'Choose a City', desc: 'Type a city name or tap the GPS button to use your current location.' },
+      { title: 'Select Your Dates', desc: 'Pick start and end dates to focus the AI on events happening during your trip.' },
+      { title: 'Pick an AI Provider', desc: 'Choose from 9 AI providers. Groq and Gemini are completely free to use.' },
+      { title: 'Answer the Questionnaire', desc: 'Tell the AI your mood, budget, preferred time of day, and interests through an 8-step wizard.' },
+      { title: 'Explore Your Map', desc: 'Browse activities on an interactive map. Filter by category, view the timeline, or swipe through cards. Save, share via WhatsApp, or export as KML.' },
     ],
     provTitle: 'AI Providers',
-    provSub: 'Choose your favorite AI. Two providers are completely free.',
+    provSub: 'Choose your favorite AI. Two providers are completely free to use.',
     instTitle: 'Install',
-    instSub: 'No app store needed. Install directly from your browser.',
+    instSub: 'No app store needed. Install directly from your browser in seconds.',
     instIOS: { title: 'iPhone / iPad', steps: ['Open Safari and go to the app', 'Tap the Share button (square with arrow)', 'Scroll down, tap "Add to Home Screen"', 'Tap "Add"'], note: 'Safari only. Chrome/Firefox on iOS don\'t support PWA install.' },
     instAndroid: { title: 'Android', steps: ['Open Chrome and go to the app', 'Tap the three-dot menu (top right)', 'Tap "Install app"', 'Tap "Install"'], note: 'Works with Chrome, Edge, Samsung Internet, and other Chromium browsers.' },
     instDesktop: { title: 'Desktop', steps: ['Open Chrome or Edge', 'Click the install icon in the address bar', 'Click "Install"'], note: 'Works on Windows, macOS, Linux, and ChromeOS.' },
     browseTitle: 'Browse Maps',
     search: 'Search by city or date...',
-    all: 'All',
-    allCities: 'All',
-    activities: 'activities',
-    map: 'map',
-    maps: 'maps',
-    of: 'of',
+    all: 'All', allCities: 'All', activities: 'activities', map: 'map', maps: 'maps', of: 'of',
     noMaps: 'No maps yet. Open Planner to plan your next weekend!',
     noResults: 'No maps found.',
     privacy: 'Privacy Policy',
@@ -228,40 +312,36 @@ var I18N = {
     tagline: 'Pianifica il viaggio perfetto con l\'AI. Scopri attivita, eventi e posti nascosti in qualsiasi citta.',
     open: 'Apri Planner',
     installBtn: 'Installa sul Telefono',
+    hlProviders: 'Provider AI', hlLanguages: 'Lingue', hlCost: 'Costo', hlTracking: 'Tracciamento',
     featTitle: 'Funzionalita',
     featSub: 'Tutto il necessario per pianificare il tempo libero, con l\'aiuto dell\'AI.',
     features: [
-      { icon: '\uD83E\uDD16', title: 'Multi-AI', desc: 'Scegli tra 9 provider AI. Groq e Gemini sono gratuiti. Ogni provider ha i suoi punti di forza.' },
+      { icon: '\uD83E\uDD16', title: 'Multi-AI', desc: 'Scegli tra 9 provider AI. Groq e Gemini sono gratuiti. Ognuno ha i suoi punti di forza per trovare le attivita migliori.' },
       { icon: '\uD83D\uDDFA\uFE0F', title: 'Mappe Interattive', desc: 'Visualizza le attivita su mappe Leaflet con filtri per categoria, timeline e schede scorrevoli.' },
-      { icon: '\uD83D\uDD0D', title: 'Ricerca Web', desc: 'Integrazione opzionale con Tavily o Serper per eventi in tempo reale e info aggiornate.' },
-      { icon: '\uD83D\uDCF1', title: 'Ovunque', desc: 'Installabile su iPhone, Android o desktop. Funziona offline con le mappe salvate. Nessun app store.' },
-      { icon: '\uD83C\uDF10', title: 'Multilingua', desc: 'Disponibile in inglese, italiano e spagnolo. Rileva automaticamente la tua lingua.' },
-      { icon: '\uD83D\uDD12', title: 'Privacy', desc: 'Nessun server, nessun tracciamento, nessuna pubblicita. Tutti i dati restano sul tuo dispositivo.' },
+      { icon: '\uD83D\uDD0D', title: 'Ricerca Web', desc: 'Integrazione opzionale con Tavily o Serper per eventi in tempo reale e informazioni aggiornate.' },
+      { icon: '\uD83D\uDCF1', title: 'Ovunque', desc: 'Installabile come app nativa su iPhone, Android o desktop. Funziona offline con le mappe salvate. Nessun app store.' },
+      { icon: '\uD83C\uDF10', title: 'Multilingua', desc: 'Disponibile in inglese, italiano e spagnolo. Rileva automaticamente la lingua del browser.' },
+      { icon: '\uD83D\uDD12', title: 'Privacy', desc: 'Nessun server, nessun tracciamento, nessuna pubblicita, nessun cookie. Tutti i dati restano sul tuo dispositivo.' },
     ],
     howTitle: 'Come Funziona',
     howSub: 'Da un\'idea a una mappa interattiva in meno di un minuto.',
     steps: [
-      { title: 'Scegli una Citta', desc: 'Scrivi il nome di una citta o tocca GPS per usare la tua posizione.' },
-      { title: 'Seleziona le Date', desc: 'Scegli le date di inizio e fine del viaggio.' },
-      { title: 'Scegli un Provider AI', desc: 'Scegli tra 9 provider AI. Groq e Gemini sono gratuiti.' },
-      { title: 'Compila il Questionario', desc: 'Indica umore, budget, orari preferiti e interessi.' },
-      { title: 'Esplora la Mappa', desc: 'Sfoglia le attivita sulla mappa interattiva. Filtra per categoria, visualizza la timeline o scorri le schede. Salva, condividi o esporta.' },
+      { title: 'Scegli una Citta', desc: 'Scrivi il nome di una citta o tocca il pulsante GPS per usare la tua posizione.' },
+      { title: 'Seleziona le Date', desc: 'Scegli le date di inizio e fine per concentrare l\'AI sugli eventi del tuo viaggio.' },
+      { title: 'Scegli un Provider AI', desc: 'Scegli tra 9 provider AI. Groq e Gemini sono completamente gratuiti.' },
+      { title: 'Compila il Questionario', desc: 'Indica umore, budget, orari preferiti e interessi attraverso un wizard a 8 passaggi.' },
+      { title: 'Esplora la Mappa', desc: 'Sfoglia le attivita sulla mappa interattiva. Filtra per categoria, visualizza la timeline o scorri le schede. Salva, condividi via WhatsApp o esporta in KML.' },
     ],
     provTitle: 'Provider AI',
     provSub: 'Scegli la tua AI preferita. Due provider sono completamente gratuiti.',
     instTitle: 'Installa',
-    instSub: 'Nessun app store. Installa direttamente dal browser.',
+    instSub: 'Nessun app store. Installa direttamente dal browser in pochi secondi.',
     instIOS: { title: 'iPhone / iPad', steps: ['Apri Safari e vai all\'app', 'Tocca il pulsante Condividi (quadrato con freccia)', 'Scorri e tocca "Aggiungi alla schermata Home"', 'Tocca "Aggiungi"'], note: 'Solo Safari. Chrome/Firefox su iOS non supportano l\'installazione PWA.' },
     instAndroid: { title: 'Android', steps: ['Apri Chrome e vai all\'app', 'Tocca il menu tre puntini (in alto a destra)', 'Tocca "Installa app"', 'Tocca "Installa"'], note: 'Funziona con Chrome, Edge, Samsung Internet e altri browser Chromium.' },
     instDesktop: { title: 'Desktop', steps: ['Apri Chrome o Edge', 'Clicca l\'icona di installazione nella barra indirizzi', 'Clicca "Installa"'], note: 'Funziona su Windows, macOS, Linux e ChromeOS.' },
     browseTitle: 'Sfoglia le Mappe',
     search: 'Cerca per citta o periodo...',
-    all: 'Tutti',
-    allCities: 'Tutte',
-    activities: 'attivita',
-    map: 'mappa',
-    maps: 'mappe',
-    of: 'su',
+    all: 'Tutti', allCities: 'Tutte', activities: 'attivita', map: 'mappa', maps: 'mappe', of: 'su',
     noMaps: 'Nessuna mappa ancora. Apri Planner per pianificare il prossimo weekend!',
     noResults: 'Nessuna mappa trovata.',
     privacy: 'Privacy Policy',
@@ -270,40 +350,36 @@ var I18N = {
     tagline: 'Planifica el viaje perfecto con IA. Descubre actividades, eventos y rincones escondidos en cualquier ciudad.',
     open: 'Abrir Planner',
     installBtn: 'Instalar en el Telefono',
+    hlProviders: 'Proveedores IA', hlLanguages: 'Idiomas', hlCost: 'Costo', hlTracking: 'Rastreo',
     featTitle: 'Funcionalidades',
     featSub: 'Todo lo que necesitas para planificar tu tiempo libre, impulsado por IA.',
     features: [
-      { icon: '\uD83E\uDD16', title: 'Multi-IA', desc: 'Elige entre 9 proveedores de IA. Groq y Gemini son gratuitos. Cada uno tiene sus fortalezas.' },
+      { icon: '\uD83E\uDD16', title: 'Multi-IA', desc: 'Elige entre 9 proveedores de IA. Groq y Gemini son gratuitos. Cada uno tiene sus fortalezas para encontrar las mejores actividades.' },
       { icon: '\uD83D\uDDFA\uFE0F', title: 'Mapas Interactivos', desc: 'Visualiza actividades en mapas Leaflet con filtros por categoria, linea de tiempo y tarjetas deslizantes.' },
-      { icon: '\uD83D\uDD0D', title: 'Busqueda Web', desc: 'Integracion opcional con Tavily o Serper para eventos en tiempo real e info actualizada.' },
-      { icon: '\uD83D\uDCF1', title: 'En Todas Partes', desc: 'Instalable en iPhone, Android o escritorio. Funciona sin conexion con mapas guardados. Sin tienda de apps.' },
-      { icon: '\uD83C\uDF10', title: 'Multilenguaje', desc: 'Disponible en ingles, italiano y espanol. Detecta automaticamente tu idioma.' },
-      { icon: '\uD83D\uDD12', title: 'Privacidad', desc: 'Sin servidores, sin rastreo, sin anuncios. Todos los datos permanecen en tu dispositivo.' },
+      { icon: '\uD83D\uDD0D', title: 'Busqueda Web', desc: 'Integracion opcional con Tavily o Serper para eventos en tiempo real e informacion actualizada.' },
+      { icon: '\uD83D\uDCF1', title: 'En Todas Partes', desc: 'Instalable como app nativa en iPhone, Android o escritorio. Funciona sin conexion con mapas guardados. Sin tienda de apps.' },
+      { icon: '\uD83C\uDF10', title: 'Multilenguaje', desc: 'Disponible en ingles, italiano y espanol. Detecta automaticamente el idioma del navegador.' },
+      { icon: '\uD83D\uDD12', title: 'Privacidad', desc: 'Sin servidores, sin rastreo, sin anuncios, sin cookies. Todos los datos permanecen en tu dispositivo.' },
     ],
     howTitle: 'Como Funciona',
     howSub: 'De una idea a un mapa interactivo en menos de un minuto.',
     steps: [
-      { title: 'Elige una Ciudad', desc: 'Escribe el nombre de una ciudad o toca GPS para usar tu ubicacion.' },
-      { title: 'Selecciona Fechas', desc: 'Elige las fechas de inicio y fin del viaje.' },
-      { title: 'Elige un Proveedor IA', desc: 'Elige entre 9 proveedores de IA. Groq y Gemini son gratuitos.' },
-      { title: 'Completa el Cuestionario', desc: 'Indica tu estado de animo, presupuesto, horarios preferidos e intereses.' },
-      { title: 'Explora tu Mapa', desc: 'Navega las actividades en el mapa interactivo. Filtra por categoria, ve la linea de tiempo o desliza tarjetas. Guarda, comparte o exporta.' },
+      { title: 'Elige una Ciudad', desc: 'Escribe el nombre de una ciudad o toca el boton GPS para usar tu ubicacion.' },
+      { title: 'Selecciona Fechas', desc: 'Elige las fechas de inicio y fin para enfocar la IA en eventos de tu viaje.' },
+      { title: 'Elige un Proveedor IA', desc: 'Elige entre 9 proveedores de IA. Groq y Gemini son completamente gratuitos.' },
+      { title: 'Completa el Cuestionario', desc: 'Indica tu estado de animo, presupuesto, horarios preferidos e intereses con un asistente de 8 pasos.' },
+      { title: 'Explora tu Mapa', desc: 'Navega las actividades en el mapa interactivo. Filtra por categoria, ve la linea de tiempo o desliza tarjetas. Guarda, comparte por WhatsApp o exporta como KML.' },
     ],
     provTitle: 'Proveedores de IA',
     provSub: 'Elige tu IA favorita. Dos proveedores son completamente gratuitos.',
     instTitle: 'Instalar',
-    instSub: 'Sin tienda de apps. Instala directamente desde el navegador.',
+    instSub: 'Sin tienda de apps. Instala directamente desde el navegador en segundos.',
     instIOS: { title: 'iPhone / iPad', steps: ['Abre Safari y ve a la app', 'Toca el boton Compartir (cuadrado con flecha)', 'Desplazate y toca "Agregar a pantalla de inicio"', 'Toca "Agregar"'], note: 'Solo Safari. Chrome/Firefox en iOS no soportan la instalacion PWA.' },
     instAndroid: { title: 'Android', steps: ['Abre Chrome y ve a la app', 'Toca el menu de tres puntos (arriba a la derecha)', 'Toca "Instalar app"', 'Toca "Instalar"'], note: 'Funciona con Chrome, Edge, Samsung Internet y otros navegadores Chromium.' },
     instDesktop: { title: 'Escritorio', steps: ['Abre Chrome o Edge', 'Haz clic en el icono de instalacion en la barra de direcciones', 'Haz clic en "Instalar"'], note: 'Funciona en Windows, macOS, Linux y ChromeOS.' },
     browseTitle: 'Explorar Mapas',
     search: 'Buscar por ciudad o fecha...',
-    all: 'Todos',
-    allCities: 'Todas',
-    activities: 'actividades',
-    map: 'mapa',
-    maps: 'mapas',
-    of: 'de',
+    all: 'Todos', allCities: 'Todas', activities: 'actividades', map: 'mapa', maps: 'mapas', of: 'de',
     noMaps: 'No hay mapas aun. Abre Planner para planificar tu proximo fin de semana!',
     noResults: 'No se encontraron mapas.',
     privacy: 'Politica de Privacidad',
@@ -339,6 +415,10 @@ function applyLang() {
   document.getElementById('tagline').textContent = t('tagline');
   document.getElementById('cta-open').textContent = t('open');
   document.getElementById('cta-install').textContent = t('installBtn');
+  document.getElementById('hl-providers').textContent = t('hlProviders');
+  document.getElementById('hl-languages').textContent = t('hlLanguages');
+  document.getElementById('hl-cost').textContent = t('hlCost');
+  document.getElementById('hl-tracking').textContent = t('hlTracking');
   document.getElementById('feat-title').textContent = t('featTitle');
   document.getElementById('feat-sub').textContent = t('featSub');
   document.getElementById('how-title').textContent = t('howTitle');
@@ -350,7 +430,6 @@ function applyLang() {
   document.getElementById('browse-title').textContent = t('browseTitle');
   document.getElementById('search').placeholder = t('search');
   document.getElementById('footer-privacy').textContent = t('privacy');
-
   renderFeatures();
   renderSteps();
   renderInstallCards();
@@ -362,8 +441,7 @@ function applyLang() {
 function renderFeatures() {
   var grid = document.getElementById('features-grid');
   grid.textContent = '';
-  var features = I18N[lang].features;
-  features.forEach(function(f) {
+  I18N[lang].features.forEach(function(f) {
     var card = document.createElement('div');
     card.className = 'feature-card';
     var icon = document.createElement('div');
@@ -383,8 +461,7 @@ function renderFeatures() {
 function renderSteps() {
   var list = document.getElementById('steps-list');
   list.textContent = '';
-  var steps = I18N[lang].steps;
-  steps.forEach(function(s, i) {
+  I18N[lang].steps.forEach(function(s, i) {
     var item = document.createElement('div');
     item.className = 'step-item';
     var num = document.createElement('div');
@@ -392,6 +469,7 @@ function renderSteps() {
     num.textContent = i + 1;
     item.appendChild(num);
     var text = document.createElement('div');
+    text.className = 'step-text';
     var h4 = document.createElement('h4');
     h4.textContent = s.title;
     text.appendChild(h4);
@@ -436,20 +514,14 @@ fetch('maps/registry.json')
   .then(function(data) {
     MAPS = data.sort(function(a, b) { return b.date_start.localeCompare(a.date_start); });
     var curYear = new Date().getFullYear().toString();
-    if (MAPS.some(function(m) { return m.date_start && m.date_start.startsWith(curYear); })) {
-      activeYear = curYear;
-    }
+    if (MAPS.some(function(m) { return m.date_start && m.date_start.startsWith(curYear); })) activeYear = curYear;
     lang = detectLang();
-    document.querySelectorAll('.lang-btn').forEach(function(b) {
-      b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase());
-    });
+    document.querySelectorAll('.lang-btn').forEach(function(b) { b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase()); });
     applyLang();
   })
   .catch(function() {
     lang = detectLang();
-    document.querySelectorAll('.lang-btn').forEach(function(b) {
-      b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase());
-    });
+    document.querySelectorAll('.lang-btn').forEach(function(b) { b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase()); });
     applyLang();
   });
 
@@ -526,41 +598,24 @@ function filterMaps() {
     }
     return true;
   });
-
   var countEl = document.getElementById('count');
-  if (MAPS.length === 0) {
-    countEl.textContent = '';
-  } else {
+  if (MAPS.length === 0) { countEl.textContent = ''; }
+  else {
     var label = filtered.length === 1 ? t('map') : t('maps');
     var total = MAPS.length !== filtered.length ? ' ' + t('of') + ' ' + MAPS.length : '';
     countEl.textContent = filtered.length + ' ' + label + total;
   }
-
   if (MAPS.length === 0) {
-    var emptyDiv = document.createElement('div');
-    emptyDiv.className = 'empty';
-    var iconDiv = document.createElement('div');
-    iconDiv.className = 'icon';
-    iconDiv.textContent = '\uD83D\uDDFA\uFE0F';
-    emptyDiv.appendChild(iconDiv);
-    var msgP = document.createElement('p');
-    msgP.textContent = t('noMaps');
-    emptyDiv.appendChild(msgP);
-    container.appendChild(emptyDiv);
-    return;
+    var ed = document.createElement('div'); ed.className = 'empty';
+    var ei = document.createElement('div'); ei.className = 'icon'; ei.textContent = '\uD83D\uDDFA\uFE0F'; ed.appendChild(ei);
+    var ep = document.createElement('p'); ep.textContent = t('noMaps'); ed.appendChild(ep);
+    container.appendChild(ed); return;
   }
   if (filtered.length === 0) {
-    var emptyDiv2 = document.createElement('div');
-    emptyDiv2.className = 'empty';
-    var iconDiv2 = document.createElement('div');
-    iconDiv2.className = 'icon';
-    iconDiv2.textContent = '\uD83D\uDD0D';
-    emptyDiv2.appendChild(iconDiv2);
-    var msgP2 = document.createElement('p');
-    msgP2.textContent = t('noResults');
-    emptyDiv2.appendChild(msgP2);
-    container.appendChild(emptyDiv2);
-    return;
+    var ed2 = document.createElement('div'); ed2.className = 'empty';
+    var ei2 = document.createElement('div'); ei2.className = 'icon'; ei2.textContent = '\uD83D\uDD0D'; ed2.appendChild(ei2);
+    var ep2 = document.createElement('p'); ep2.textContent = t('noResults'); ed2.appendChild(ep2);
+    container.appendChild(ed2); return;
   }
   filtered.forEach(function(m) {
     var card = document.createElement('a');
@@ -577,10 +632,10 @@ function filterMaps() {
       var badges = document.createElement('div');
       badges.style.marginTop = '6px';
       m.categories.forEach(function(c) {
-        var badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.textContent = c;
-        badges.appendChild(badge);
+        var b = document.createElement('span');
+        b.className = 'badge';
+        b.textContent = c;
+        badges.appendChild(b);
       });
       card.appendChild(badges);
     }
