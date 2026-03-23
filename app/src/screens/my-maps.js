@@ -105,7 +105,7 @@ function createMapCard(map, container, el) {
 
 const screenObj = {
   mount(el) {
-    const content = el.querySelector('[data-content]') || el;
+    const content = el.querySelector('#my-maps-content') || el;
     content.textContent = '';
 
     const maps = db.readJSON('maps_registry', []);
