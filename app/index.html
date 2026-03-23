@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="description" content="AI-powered leisure activity planner with interactive maps" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
+    <link rel="manifest" href="manifest.json" />
+    <title>Planner</title>
+  </head>
+  <body>
+
+    <!-- Home -->
+    <div class="screen" data-screen="home">
+      <div class="header">
+        <span class="header-title" data-t="mainTitle">Planner</span>
+      </div>
+      <div class="content flex-col gap-12" id="home-content"></div>
+    </div>
+
+    <!-- New Trip -->
+    <div class="screen" data-screen="new-trip">
+      <div class="header">
+        <button class="header-back" data-back>&larr;</button>
+        <span class="header-title" data-t="newTrip">Plan New Trip</span>
+      </div>
+      <div class="content flex-col gap-16" id="new-trip-content"></div>
+    </div>
+
+    <!-- Questionnaire -->
+    <div class="screen" data-screen="questionnaire">
+      <div class="header">
+        <button class="header-back" data-back>&larr;</button>
+        <span class="header-title" data-t="qTitle">Trip Profile</span>
+      </div>
+      <div class="content flex-col gap-16" id="questionnaire-content"></div>
+    </div>
+
+    <!-- Voice Plan -->
+    <div class="screen" data-screen="voice-plan">
+      <div class="header">
+        <button class="header-back" data-back>&larr;</button>
+        <span class="header-title" data-t="voicePlan">Voice Plan</span>
+      </div>
+      <div class="content flex-col gap-16" id="voice-plan-content"></div>
+    </div>
+
+    <!-- Search (paginated results) -->
+    <div class="screen" data-screen="search">
+      <div class="header">
+        <button class="header-back" data-back>&larr;</button>
+        <span class="header-title" data-t="searchResults">Search Results</span>
+      </div>
+      <div class="content flex-col gap-12" id="search-content"></div>
+    </div>
+
+    <!-- My Maps -->
+    <div class="screen" data-screen="my-maps">
+      <div class="header">
+        <button class="header-back" data-back>&larr;</button>
+        <span class="header-title" data-t="myMaps">My Maps</span>
+      </div>
+      <div class="content flex-col gap-12" id="my-maps-content"></div>
+    </div>
+
+    <!-- Map View -->
+    <div class="screen" data-screen="map-view">
+      <div class="header">
+        <button class="header-back" data-back>&larr;</button>
+        <span class="header-title" id="map-view-title">Map</span>
+      </div>
+      <div class="map-container" id="map-view-container"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="screen" data-screen="settings">
+      <div class="header">
+        <button class="header-back" data-back>&larr;</button>
+        <span class="header-title" data-t="settings">Settings</span>
+      </div>
+      <div class="content flex-col gap-16" id="settings-content"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

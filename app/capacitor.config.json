@@ -1,0 +1,10 @@
+{
+  "appId": "com.ccancellieri.planner",
+  "appName": "Planner",
+  "webDir": "dist",
+  "plugins": {
+    "Geolocation": {
+      "permissions": ["location"]
+    }
+  }
+}

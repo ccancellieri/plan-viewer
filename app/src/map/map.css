@@ -1,0 +1,286 @@
+/* Copyright 2026 Carlo Cancellieri */
+/* All rights reserved. Proprietary license. */
+
+/* Map view specific styles */
+
+.map-tabs {
+  display: flex;
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 52px;
+  z-index: 500;
+}
+
+.map-tab {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Filter chips bar */
+.map-filters {
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.filter-chip.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.filter-chip .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Map view panel */
+.map-panel {
+  display: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.map-panel.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.leaflet-map {
+  flex: 1;
+  min-height: 300px;
+}
+
+/* Cards in map view */
+.map-cards {
+  padding: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.map-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.map-card-cat {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: white;
+}
+
+.map-card h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+  padding-right: 80px;
+}
+
+.map-card .meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.map-card .description {
+  font-size: 13px;
+  color: var(--text);
+  margin: 8px 0;
+}
+
+.map-card .actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-navigate {
+  background: #4285f4;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-info {
+  background: var(--bg-secondary);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Timeline in map view */
+.map-timeline {
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.timeline-day {
+  margin-bottom: 20px;
+}
+
+.timeline-day h2 {
+  font-size: 15px;
+  color: var(--accent);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.timeline-slot {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.timeline-time {
+  width: 50px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.timeline-content {
+  flex: 1;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+  border-left: 3px solid var(--accent);
+}
+
+.timeline-content h4 {
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.timeline-content .tl-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Share bar */
+.share-bar {
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  color: white;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-whatsapp {
+  background: #25D366;
+}
+
+.btn-share-native {
+  background: var(--accent);
+}
+
+/* Start info bar */
+.start-info {
+  background: #fff3cd;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid #ffc107;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-info {
+    background: #3d3200;
+    border-bottom-color: #665200;
+    color: var(--text);
+  }
+}
+
+/* Leaflet popup override */
+.map-popup strong {
+  font-size: 14px;
+}
+
+.map-popup p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 4px 0;
+}

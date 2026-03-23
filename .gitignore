@@ -1,1 +1,10 @@
 scriptable/Planner.min.js
+
+# App v2
+app/node_modules/
+app/dist/
+app/ios/
+app/android/
+app/assets/
+.DS_Store
+.claude/
