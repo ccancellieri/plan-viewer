@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#667eea">
+<meta name="description" content="AI-powered leisure activity planner with interactive maps">
 <link rel="manifest" href="manifest.json">
 <title>Plan Viewer</title>
 <style>
@@ -20,6 +21,23 @@ body {
 }
 .header h1 { font-size: 28px; font-weight: 700; }
 .header p { font-size: 14px; opacity: 0.85; margin-top: 6px; }
+.lang-bar {
+  display: flex; justify-content: center; gap: 8px; margin-top: 12px;
+}
+.lang-btn {
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+  color: white; padding: 4px 12px; border-radius: 14px; font-size: 12px;
+  cursor: pointer; transition: all 0.2s;
+}
+.lang-btn.active { background: white; color: #667eea; border-color: white; }
+.install-banner {
+  background: linear-gradient(135deg, #667eea20, #764ba220);
+  border: 1px solid #667eea40; border-radius: 12px;
+  padding: 14px 16px; margin: 12px auto; max-width: 568px;
+  font-size: 13px; color: #444; line-height: 1.6;
+}
+.install-banner strong { display: block; margin-bottom: 4px; color: #333; }
+.install-banner .step { margin: 2px 0; }
 .search-bar {
   padding: 12px 16px; background: white; border-bottom: 1px solid #eee;
   position: sticky; top: 0; z-index: 100; max-width: 600px; margin: 0 auto;
@@ -60,138 +78,322 @@ body {
 .empty { text-align: center; padding: 60px 20px; color: #aaa; }
 .empty .icon { font-size: 48px; margin-bottom: 12px; }
 .count { font-size: 12px; color: #999; text-align: center; padding: 8px; }
-.tip {
-  background: #fff3cd; border-radius: 12px; padding: 12px 16px;
-  margin: 16px auto; font-size: 13px; color: #856404; max-width: 568px;
+.cta-bar {
+  text-align: center; padding: 16px; max-width: 600px; margin: 0 auto;
 }
-.tip strong { display: block; margin-bottom: 4px; }
+.cta-btn {
+  display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white; padding: 12px 28px; border-radius: 24px; font-size: 15px;
+  font-weight: 600; text-decoration: none; transition: transform 0.15s;
+  box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+}
+.cta-btn:active { transform: scale(0.97); }
+.footer {
+  text-align: center; padding: 24px 16px; font-size: 12px; color: #aaa;
+  max-width: 600px; margin: 0 auto;
+}
+.footer a { color: #667eea; text-decoration: none; }
 </style>
 </head>
 <body>
 <div class="header">
-  <h1>🗺️ Plan Viewer</h1>
-  <p>Le mie mappe di attivita e tempo libero</p>
+  <h1>Plan Viewer</h1>
+  <p id="subtitle">AI-powered leisure activity planner</p>
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('it')">IT</button>
+    <button class="lang-btn" onclick="setLang('es')">ES</button>
+  </div>
 </div>
 
+<div class="cta-bar">
+  <a class="cta-btn" href="app/" id="cta-open">Open Planner</a>
+</div>
+
+<div class="install-banner" id="install-tip"></div>
+
 <div class="search-bar">
-  <input class="search-input" type="text" placeholder="🔍 Cerca per citta o periodo..." id="search" oninput="filterMaps()">
+  <input class="search-input" type="text" id="search" oninput="filterMaps()">
 </div>
 <div class="year-chips" id="year-chips"></div>
 <div class="city-chips" id="chips"></div>
 <div class="count" id="count"></div>
 <div class="maps-grid" id="maps"></div>
 
-<div class="tip" id="tip">
-  <strong>Aggiungi alla Home Screen:</strong>
-  In Safari tocca 📤 poi "Aggiungi alla schermata Home".
+<div class="footer">
+  <a href="app/privacy-policy.html" id="footer-privacy">Privacy Policy</a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/ccancellieri" target="_blank">GitHub</a>
+  &nbsp;&middot;&nbsp;
+  &copy; 2026 Carlo Cancellieri
 </div>
 
 <script>
-let MAPS = [];
-let activeYear = null;
-let activeCity = null;
+var I18N = {
+  en: {
+    subtitle: 'AI-powered leisure activity planner',
+    open: 'Open Planner',
+    search: 'Search by city or date...',
+    all: 'All',
+    allCities: 'All',
+    activities: 'activities',
+    map: 'map',
+    maps: 'maps',
+    of: 'of',
+    noMaps: 'No maps yet. Open Planner to plan your next weekend!',
+    noResults: 'No maps found.',
+    privacy: 'Privacy Policy',
+    installTitle: 'Install on your phone:',
+    installIOS: 'iPhone/iPad: In Safari tap Share then "Add to Home Screen".',
+    installAndroid: 'Android: In Chrome tap Menu then "Install app".',
+  },
+  it: {
+    subtitle: 'Pianificatore di attivita con AI e mappe interattive',
+    open: 'Apri Planner',
+    search: 'Cerca per citta o periodo...',
+    all: 'Tutti',
+    allCities: 'Tutte',
+    activities: 'attivita',
+    map: 'mappa',
+    maps: 'mappe',
+    of: 'su',
+    noMaps: 'Nessuna mappa ancora. Apri Planner per pianificare il prossimo weekend!',
+    noResults: 'Nessuna mappa trovata.',
+    privacy: 'Privacy Policy',
+    installTitle: 'Installa sul telefono:',
+    installIOS: 'iPhone/iPad: In Safari tocca Condividi poi "Aggiungi alla schermata Home".',
+    installAndroid: 'Android: In Chrome tocca Menu poi "Installa app".',
+  },
+  es: {
+    subtitle: 'Planificador de actividades con IA y mapas interactivos',
+    open: 'Abrir Planner',
+    search: 'Buscar por ciudad o fecha...',
+    all: 'Todos',
+    allCities: 'Todas',
+    activities: 'actividades',
+    map: 'mapa',
+    maps: 'mapas',
+    of: 'de',
+    noMaps: 'No hay mapas aun. Abre Planner para planificar tu proximo fin de semana!',
+    noResults: 'No se encontraron mapas.',
+    privacy: 'Politica de Privacidad',
+    installTitle: 'Instalar en tu telefono:',
+    installIOS: 'iPhone/iPad: En Safari toca Compartir y luego "Agregar a pantalla de inicio".',
+    installAndroid: 'Android: En Chrome toca Menu y luego "Instalar app".',
+  },
+};
+
+var lang = 'en';
+var MAPS = [];
+var activeYear = null;
+var activeCity = null;
+
+function t(key) { return I18N[lang][key] || key; }
+
+function detectLang() {
+  var saved = localStorage.getItem('pv_lang');
+  if (saved && I18N[saved]) return saved;
+  var nav = (navigator.language || '').slice(0, 2);
+  if (nav === 'it') return 'it';
+  if (nav === 'es') return 'es';
+  return 'en';
+}
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('pv_lang', l);
+  document.querySelectorAll('.lang-btn').forEach(function(b) {
+    b.classList.toggle('active', b.textContent.trim() === l.toUpperCase());
+  });
+  applyLang();
+}
+
+function applyLang() {
+  document.getElementById('subtitle').textContent = t('subtitle');
+  document.getElementById('cta-open').textContent = t('open');
+  document.getElementById('search').placeholder = t('search');
+  document.getElementById('footer-privacy').textContent = t('privacy');
+
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  var tip = document.getElementById('install-tip');
+  if (isStandalone) {
+    tip.style.display = 'none';
+  } else {
+    tip.textContent = '';
+    var title = document.createElement('strong');
+    title.textContent = t('installTitle');
+    tip.appendChild(title);
+    var iosStep = document.createElement('div');
+    iosStep.className = 'step';
+    iosStep.textContent = t('installIOS');
+    tip.appendChild(iosStep);
+    var androidStep = document.createElement('div');
+    androidStep.className = 'step';
+    androidStep.textContent = t('installAndroid');
+    tip.appendChild(androidStep);
+  }
+
+  buildYearChips();
+  buildCityChips();
+  filterMaps();
+}
 
 fetch('maps/registry.json')
-  .then(r => r.json())
-  .then(data => {
-    MAPS = data.sort((a, b) => b.date_start.localeCompare(a.date_start));
-    // Default to current year if maps exist for it
-    const curYear = new Date().getFullYear().toString();
-    if (MAPS.some(m => m.date_start && m.date_start.startsWith(curYear))) {
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    MAPS = data.sort(function(a, b) { return b.date_start.localeCompare(a.date_start); });
+    var curYear = new Date().getFullYear().toString();
+    if (MAPS.some(function(m) { return m.date_start && m.date_start.startsWith(curYear); })) {
       activeYear = curYear;
     }
-    buildYearChips();
-    buildCityChips();
-    filterMaps();
-    if (window.matchMedia('(display-mode: standalone)').matches)
-      document.getElementById('tip').style.display = 'none';
+    lang = detectLang();
+    document.querySelectorAll('.lang-btn').forEach(function(b) {
+      b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase());
+    });
+    applyLang();
   })
-  .catch(() => {
-    document.getElementById('maps').innerHTML =
-      '<div class="empty"><div class="icon">🗺️</div><p>Nessuna mappa ancora.<br>Chiedi a Claude di pianificare il tuo prossimo weekend!</p></div>';
+  .catch(function() {
+    lang = detectLang();
+    document.querySelectorAll('.lang-btn').forEach(function(b) {
+      b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase());
+    });
+    applyLang();
   });
 
 function buildYearChips() {
-  const years = [...new Set(MAPS.map(m => m.date_start ? m.date_start.substring(0, 4) : null).filter(Boolean))].sort().reverse();
-  const container = document.getElementById('year-chips');
-  const allChip = document.createElement('span');
+  var yearSet = {};
+  MAPS.forEach(function(m) {
+    if (m.date_start) yearSet[m.date_start.substring(0, 4)] = true;
+  });
+  var years = Object.keys(yearSet).sort().reverse();
+  var container = document.getElementById('year-chips');
+  container.textContent = '';
+  var allChip = document.createElement('span');
   allChip.className = 'chip' + (!activeYear ? ' active' : '');
-  allChip.textContent = 'Tutti';
-  allChip.onclick = () => { activeYear = null; updateYearChips(); buildCityChips(); filterMaps(); };
+  allChip.textContent = t('all');
+  allChip.onclick = function() { activeYear = null; updateYearChips(); buildCityChips(); filterMaps(); };
   container.appendChild(allChip);
-  years.forEach(year => {
-    const chip = document.createElement('span');
+  years.forEach(function(year) {
+    var chip = document.createElement('span');
     chip.className = 'chip' + (year === activeYear ? ' active' : '');
     chip.textContent = year;
     chip.dataset.year = year;
-    chip.onclick = () => { activeYear = activeYear === year ? null : year; updateYearChips(); buildCityChips(); filterMaps(); };
+    chip.onclick = function() { activeYear = activeYear === year ? null : year; updateYearChips(); buildCityChips(); filterMaps(); };
     container.appendChild(chip);
   });
 }
 
 function updateYearChips() {
-  document.querySelectorAll('#year-chips .chip').forEach(c => {
+  document.querySelectorAll('#year-chips .chip').forEach(function(c) {
     if (!c.dataset.year) c.classList.toggle('active', !activeYear);
     else c.classList.toggle('active', c.dataset.year === activeYear);
   });
 }
 
 function buildCityChips() {
-  const visibleMaps = activeYear ? MAPS.filter(m => m.date_start && m.date_start.startsWith(activeYear)) : MAPS;
-  const cities = [...new Set(visibleMaps.map(m => m.city))].sort();
+  var visibleMaps = activeYear ? MAPS.filter(function(m) { return m.date_start && m.date_start.startsWith(activeYear); }) : MAPS;
+  var citySet = {};
+  visibleMaps.forEach(function(m) { citySet[m.city] = true; });
+  var cities = Object.keys(citySet).sort();
   activeCity = null;
-  const container = document.getElementById('chips');
-  container.innerHTML = '';
-  const allChip = document.createElement('span');
+  var container = document.getElementById('chips');
+  container.textContent = '';
+  var allChip = document.createElement('span');
   allChip.className = 'chip active';
-  allChip.textContent = 'Tutte';
-  allChip.onclick = () => { activeCity = null; updateCityChips(); filterMaps(); };
+  allChip.textContent = t('allCities');
+  allChip.onclick = function() { activeCity = null; updateCityChips(); filterMaps(); };
   container.appendChild(allChip);
-  cities.forEach(city => {
-    const chip = document.createElement('span');
+  cities.forEach(function(city) {
+    var chip = document.createElement('span');
     chip.className = 'chip';
     chip.textContent = city;
     chip.dataset.city = city;
-    chip.onclick = () => { activeCity = activeCity === city ? null : city; updateCityChips(); filterMaps(); };
+    chip.onclick = function() { activeCity = activeCity === city ? null : city; updateCityChips(); filterMaps(); };
     container.appendChild(chip);
   });
 }
 
 function updateCityChips() {
-  document.querySelectorAll('#chips .chip').forEach(c => {
+  document.querySelectorAll('#chips .chip').forEach(function(c) {
     if (!c.dataset.city) c.classList.toggle('active', !activeCity);
     else c.classList.toggle('active', c.dataset.city === activeCity);
   });
 }
 
 function filterMaps() {
-  const query = (document.getElementById('search').value || '').toLowerCase();
-  const container = document.getElementById('maps');
-  container.innerHTML = '';
-  const filtered = MAPS.filter(m => {
+  var query = (document.getElementById('search').value || '').toLowerCase();
+  var container = document.getElementById('maps');
+  container.textContent = '';
+  var filtered = MAPS.filter(function(m) {
     if (activeYear && (!m.date_start || !m.date_start.startsWith(activeYear))) return false;
     if (activeCity && m.city !== activeCity) return false;
     if (query) {
-      const hay = (m.title + ' ' + m.city + ' ' + m.location + ' ' + m.date_label + ' ' + (m.categories || []).join(' ')).toLowerCase();
+      var hay = (m.title + ' ' + m.city + ' ' + m.location + ' ' + m.date_label + ' ' + (m.categories || []).join(' ')).toLowerCase();
       return hay.includes(query);
     }
     return true;
   });
-  document.getElementById('count').textContent =
-    filtered.length + ' mapp' + (filtered.length === 1 ? 'a' : 'e') +
-    (MAPS.length !== filtered.length ? ' su ' + MAPS.length : '');
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty"><div class="icon">🔍</div><p>Nessuna mappa trovata.</p></div>';
+
+  var countEl = document.getElementById('count');
+  if (MAPS.length === 0) {
+    countEl.textContent = '';
+  } else {
+    var label = filtered.length === 1 ? t('map') : t('maps');
+    var total = MAPS.length !== filtered.length ? ' ' + t('of') + ' ' + MAPS.length : '';
+    countEl.textContent = filtered.length + ' ' + label + total;
+  }
+
+  if (MAPS.length === 0) {
+    var emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty';
+    var iconDiv = document.createElement('div');
+    iconDiv.className = 'icon';
+    iconDiv.textContent = '\uD83D\uDDFA\uFE0F';
+    emptyDiv.appendChild(iconDiv);
+    var msgP = document.createElement('p');
+    msgP.textContent = t('noMaps');
+    emptyDiv.appendChild(msgP);
+    container.appendChild(emptyDiv);
     return;
   }
-  filtered.forEach(m => {
-    const card = document.createElement('a');
+  if (filtered.length === 0) {
+    var emptyDiv2 = document.createElement('div');
+    emptyDiv2.className = 'empty';
+    var iconDiv2 = document.createElement('div');
+    iconDiv2.className = 'icon';
+    iconDiv2.textContent = '\uD83D\uDD0D';
+    emptyDiv2.appendChild(iconDiv2);
+    var msgP2 = document.createElement('p');
+    msgP2.textContent = t('noResults');
+    emptyDiv2.appendChild(msgP2);
+    container.appendChild(emptyDiv2);
+    return;
+  }
+  filtered.forEach(function(m) {
+    var card = document.createElement('a');
     card.className = 'map-card';
     card.href = 'maps/' + m.file;
-    card.innerHTML =
-      '<h2>' + m.title + '</h2>' +
-      '<div class="meta">📍 ' + m.location + '<br>📅 ' + m.date_label + '<br>🎯 ' + m.activities + ' attivita</div>' +
-      '<div style="margin-top:6px">' + (m.categories || []).map(c => '<span class="badge">' + c + '</span>').join('') + '</div>';
+
+    var h2 = document.createElement('h2');
+    h2.textContent = m.title;
+    card.appendChild(h2);
+
+    var meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = '\uD83D\uDCCD ' + m.location + ' \u2022 \uD83D\uDCC5 ' + m.date_label + ' \u2022 \uD83C\uDFAF ' + m.activities + ' ' + t('activities');
+    card.appendChild(meta);
+
+    if (m.categories && m.categories.length > 0) {
+      var badges = document.createElement('div');
+      badges.style.marginTop = '6px';
+      m.categories.forEach(function(c) {
+        var badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = c;
+        badges.appendChild(badge);
+      });
+      card.appendChild(badges);
+    }
     container.appendChild(card);
   });
 }

@@ -2,18 +2,46 @@ Copyright 2026 Carlo Cancellieri. All rights reserved.
 
 PROPRIETARY SOFTWARE LICENSE
 
-This software and associated documentation files (the "Software") are the
-exclusive property of Carlo Cancellieri.
+1. Definitions
 
-Permission is NOT granted to any person or entity to copy, modify, merge,
-publish, distribute, sublicense, sell, or create derivative works of the
-Software, in whole or in part, without the prior written consent of the
-copyright holder.
+   "Software" means all source code, object code, documentation, assets,
+   and associated files contained in this repository.
 
-The Software is provided "as is", without warranty of any kind, express or
-implied, including but not limited to the warranties of merchantability,
-fitness for a particular purpose, and noninfringement. In no event shall
-the author be liable for any claim, damages, or other liability arising
-from the use of the Software.
+   "Author" means Carlo Cancellieri (ccancellieri@gmail.com).
 
-For licensing inquiries, contact: Carlo Cancellieri
+2. Grant of Rights
+
+   No license, right, or permission is granted to any person or entity to
+   use, copy, modify, merge, publish, distribute, sublicense, sell, or
+   create derivative works of the Software, in whole or in part, without
+   the prior written consent of the Author.
+
+3. Personal Use
+
+   You may view this repository for personal reference and educational
+   purposes only. You may not deploy, host, or redistribute the Software
+   or any portion thereof without written permission from the Author.
+
+4. Contributions
+
+   By submitting a pull request or other contribution to this repository,
+   you agree to transfer all intellectual property rights in your
+   contribution to the Author.
+
+5. Disclaimer of Warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+6. Limitation of Liability
+
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+   FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+7. Contact
+
+   For licensing inquiries: Carlo Cancellieri — ccancellieri@gmail.com
+   GitHub: https://github.com/ccancellieri
