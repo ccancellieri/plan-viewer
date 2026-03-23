@@ -32,10 +32,10 @@ function renderLocationStep(container) {
   container.appendChild(input);
 
   const btnRow = document.createElement('div');
-  btnRow.className = 'flex-row gap-8 mt-8';
+  btnRow.className = 'flex-col gap-8 mt-12';
 
   const searchBtn = document.createElement('button');
-  searchBtn.className = 'btn btn-primary';
+  searchBtn.className = 'btn btn-primary btn-block btn-large';
   searchBtn.textContent = t('searchBtn') || 'Search';
   searchBtn.addEventListener('click', async () => {
     const query = input.value.trim();
@@ -61,7 +61,7 @@ function renderLocationStep(container) {
   btnRow.appendChild(searchBtn);
 
   const gpsBtn = document.createElement('button');
-  gpsBtn.className = 'btn btn-secondary';
+  gpsBtn.className = 'btn btn-secondary btn-block btn-large';
   gpsBtn.textContent = t('useGPS') || 'Use GPS';
   gpsBtn.addEventListener('click', async () => {
     const dismiss = showLoader(t('locating') || 'Locating...');
@@ -115,16 +115,10 @@ function renderDatesStep(container) {
   container.appendChild(endInput);
 
   const btnRow = document.createElement('div');
-  btnRow.className = 'flex-row gap-8 mt-8';
-
-  const backBtn = document.createElement('button');
-  backBtn.className = 'btn btn-secondary';
-  backBtn.textContent = t('back') || 'Back';
-  backBtn.addEventListener('click', () => renderLocationStep(container));
-  btnRow.appendChild(backBtn);
+  btnRow.className = 'flex-col gap-8 mt-16';
 
   const nextBtn = document.createElement('button');
-  nextBtn.className = 'btn btn-primary';
+  nextBtn.className = 'btn btn-primary btn-block btn-large';
   nextBtn.textContent = t('next') || 'Next';
   nextBtn.addEventListener('click', () => {
     state.dateStart = startInput.value;
@@ -133,6 +127,12 @@ function renderDatesStep(container) {
     renderProviderStep(container);
   });
   btnRow.appendChild(nextBtn);
+
+  const backBtn2 = document.createElement('button');
+  backBtn2.className = 'btn btn-secondary btn-block';
+  backBtn2.textContent = t('back') || 'Back';
+  backBtn2.addEventListener('click', () => renderLocationStep(container));
+  btnRow.appendChild(backBtn2);
 
   container.appendChild(btnRow);
 }

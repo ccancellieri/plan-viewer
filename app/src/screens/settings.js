@@ -44,7 +44,7 @@ function createProviderCard(provider, container, el) {
   card.appendChild(status);
 
   const btn = document.createElement('button');
-  btn.className = 'btn btn-secondary mt-8';
+  btn.className = 'btn btn-secondary btn-block mt-8';
   btn.textContent = storedKey ? t('updateKey') || 'Update Key' : t('setKey') || 'Set Key';
   btn.addEventListener('click', async () => {
     const value = await prompt(
@@ -54,7 +54,6 @@ function createProviderCard(provider, container, el) {
     );
     if (value !== null) {
       db.writeJSON(`apikey_${provider.id}`, value || null);
-      // Re-mount to refresh state
       screenObj.mount(el);
     }
   });
@@ -80,7 +79,7 @@ function createSearchKeyCard(id, label, container, el) {
   card.appendChild(status);
 
   const btn = document.createElement('button');
-  btn.className = 'btn btn-secondary mt-8';
+  btn.className = 'btn btn-secondary btn-block mt-8';
   btn.textContent = storedKey ? t('updateKey') || 'Update Key' : t('setKey') || 'Set Key';
   btn.addEventListener('click', async () => {
     const value = await prompt(
@@ -106,7 +105,7 @@ const screenObj = {
     // --- Language picker ---
     const langSection = createSection(t('language') || 'Language');
     const langBtn = document.createElement('button');
-    langBtn.className = 'btn btn-secondary mt-8';
+    langBtn.className = 'btn btn-secondary btn-block mt-8';
     langBtn.textContent = (t('currentLang') || 'Current') + ': ' + getLang().toUpperCase();
     langBtn.addEventListener('click', async () => {
       const locales = getAvailableLocales();
