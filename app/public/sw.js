@@ -1,33 +1,28 @@
 // Copyright 2026 Carlo Cancellieri
 // All rights reserved. Proprietary license.
 
-const CACHE_NAME = 'planner-v1';
+const CACHE_NAME = 'planner-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Cache the app shell - use relative paths from SW scope
       const base = self.registration.scope;
       return cache.addAll([
-        base,
-        base + 'index.html',
         base + 'manifest.json',
         base + 'favicon.png',
         base + 'leaflet/leaflet.js',
         base + 'leaflet/leaflet.css',
       ]);
-    })
+    }).then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -41,7 +36,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for local assets
+  // Network-first for HTML (index.html changes on every deploy)
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache-first for hashed assets (JS/CSS bundles are immutable per deploy)
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
