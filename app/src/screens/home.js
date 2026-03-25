@@ -16,6 +16,49 @@ function isStandalone() {
     || window.navigator.standalone === true;
 }
 
+function getInstallHint() {
+  const ua = navigator.userAgent;
+  const isIOS = /iphone|ipad|ipod/i.test(ua);
+  const isAndroid = /android/i.test(ua);
+  const isIOSChrome = isIOS && /crios|chrome/i.test(ua);
+  const isIOSSafari = isIOS && !isIOSChrome && /safari/i.test(ua);
+
+  if (isIOSChrome) {
+    return {
+      icon: '⚠️',
+      en: 'To install: open this page in Safari (not Chrome), then tap 📤 → "Add to Home Screen".',
+      it: 'Per installare: apri questa pagina in Safari (non Chrome), poi tocca 📤 → "Aggiungi alla schermata Home".',
+      es: 'Para instalar: abre esta página en Safari (no Chrome), luego toca 📤 → "Agregar a pantalla de inicio".',
+    };
+  }
+  if (isIOSSafari) {
+    return {
+      icon: '📲',
+      en: 'Install: tap 📤 then "Add to Home Screen".',
+      it: 'Installa: tocca 📤 poi "Aggiungi alla schermata Home".',
+      es: 'Instalar: toca 📤 y luego "Agregar a pantalla de inicio".',
+    };
+  }
+  if (isAndroid) {
+    return {
+      icon: '📲',
+      en: 'Install: tap ⋮ then "Add to Home Screen".',
+      it: 'Installa: tocca ⋮ poi "Aggiungi alla schermata Home".',
+      es: 'Instalar: toca ⋮ y luego "Agregar a pantalla de inicio".',
+    };
+  }
+  // Fallback for iOS unknown browser or desktop
+  if (isIOS) {
+    return {
+      icon: '📲',
+      en: 'Install: open in Safari, tap 📤 → "Add to Home Screen".',
+      it: 'Installa: apri in Safari, tocca 📤 → "Aggiungi alla schermata Home".',
+      es: 'Instalar: abre en Safari, toca 📤 → "Agregar a pantalla de inicio".',
+    };
+  }
+  return null;
+}
+
 export default {
   mount(el) {
     const content = el.querySelector('#home-content');
@@ -46,23 +89,22 @@ export default {
 
     // Install hint (only shown in browser, not when installed)
     if (!isStandalone()) {
-      const lang = document.documentElement.lang || 'en';
-      const hints = {
-        it: { text: 'Installa questa app: in Safari tocca 📤 poi "Aggiungi alla schermata Home".', icon: '📲' },
-        es: { text: 'Instala esta app: en Safari toca 📤 y luego "Agregar a pantalla de inicio".', icon: '📲' },
-        en: { text: 'Install this app: in Safari tap 📤 then "Add to Home Screen".', icon: '📲' },
-      };
-      const h = hints[lang] || hints.en;
-      const banner = document.createElement('div');
-      banner.className = 'install-hint mt-16';
-      const ic = document.createElement('span');
-      ic.className = 'icon';
-      ic.textContent = h.icon;
-      banner.appendChild(ic);
-      const txt = document.createElement('span');
-      txt.textContent = h.text;
-      banner.appendChild(txt);
-      content.appendChild(banner);
+      const hint = getInstallHint();
+      if (hint) {
+        const storedLang = localStorage.getItem('app_lang') || 'en';
+        const lang = storedLang.slice(0, 2);
+        const text = hint[lang] || hint.en;
+        const banner = document.createElement('div');
+        banner.className = 'install-hint mt-16';
+        const ic = document.createElement('span');
+        ic.className = 'icon';
+        ic.textContent = hint.icon;
+        banner.appendChild(ic);
+        const txt = document.createElement('span');
+        txt.textContent = text;
+        banner.appendChild(txt);
+        content.appendChild(banner);
+      }
     }
   },
 };
