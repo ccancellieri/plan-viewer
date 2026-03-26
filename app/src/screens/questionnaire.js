@@ -61,7 +61,7 @@ function clearContainer(container) {
 
 function createNavButtons(container, onBack, onNext, nextLabel) {
   const btnRow = document.createElement('div');
-  btnRow.className = 'flex-row gap-8 mt-8';
+  btnRow.className = 'nav-btns';
 
   if (onBack) {
     const backBtn = document.createElement('button');
@@ -205,7 +205,7 @@ function renderSummary(container) {
   });
 
   const btnRow = document.createElement('div');
-  btnRow.className = 'flex-row gap-8 mt-16';
+  btnRow.className = 'nav-btns';
 
   const backBtn = document.createElement('button');
   backBtn.className = 'btn btn-secondary';

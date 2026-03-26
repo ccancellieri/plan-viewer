@@ -135,11 +135,11 @@ export function actionSheet(title, options) {
     box.appendChild(createTitle(title));
 
     const list = document.createElement('div');
-    list.className = 'modal-actions';
+    list.className = 'modal-list';
 
     options.forEach((optionLabel, index) => {
       const btn = document.createElement('button');
-      btn.className = 'btn btn-secondary';
+      btn.className = 'btn btn-secondary btn-block';
       btn.textContent = optionLabel;
       btn.addEventListener('click', () => {
         removeOverlay(overlay);
