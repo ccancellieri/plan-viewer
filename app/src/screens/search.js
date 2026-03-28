@@ -113,10 +113,42 @@ async function doSearch(container, params, excludeNames) {
     );
 
     const apiKey = db.readJSON('apikey_' + params.providerId, '');
+    if (!apiKey) {
+      dismiss();
+      const lines = [
+        '--- ' + (t('searchError') || 'Search Error') + ' ---',
+        '',
+        'Provider: ' + (params.providerId || 'unknown'),
+        'Time: ' + new Date().toISOString(),
+        '',
+        'Error: No API key configured for ' + params.providerId,
+        'Go to Settings to set your API key.',
+      ];
+      errorReport(t('searchError') || 'Search failed', lines.join('\n'));
+      return [];
+    }
     const responseText = await callLLM(params.providerId, apiKey, systemPrompt, userPrompt);
     const activities = parseActivities(responseText, params.dateStart, params.dateEnd);
 
     dismiss();
+
+    if (activities.length === 0 && responseText) {
+      const preview = responseText.length > 500 ? responseText.slice(0, 500) + '...' : responseText;
+      const lines = [
+        '--- ' + (t('noResults') || 'No results') + ' ---',
+        '',
+        'Provider: ' + (params.providerId || 'unknown'),
+        'City: ' + (params.city || 'N/A'),
+        'Dates: ' + (params.dateStart || '?') + ' - ' + (params.dateEnd || '?'),
+        'Time: ' + new Date().toISOString(),
+        '',
+        'The AI responded but no activities could be parsed.',
+        '',
+        'Raw response:',
+        preview,
+      ];
+      errorReport(t('noResults') || 'No results', lines.join('\n'));
+    }
 
     // Geocode each activity's address for accurate coordinates
     if (activities.length > 0) {
