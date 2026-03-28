@@ -6,7 +6,7 @@ import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { providers, callLLM } from '../providers/index.js';
 import { showLoader } from '../ui/loader.js';
-import { alert as modalAlert, actionSheet, prompt as modalPrompt } from '../ui/modal.js';
+import { alert as modalAlert, actionSheet, prompt as modalPrompt, errorReport } from '../ui/modal.js';
 import { showToast } from '../ui/toast.js';
 import { searchLocation } from '../lib/geo.js';
 
@@ -133,7 +133,18 @@ export default {
         }
       } catch (e) {
         dismiss();
-        await modalAlert(t('error'), String(e.message || e));
+        const lines = [
+          '--- ' + (t('searchError') || 'Search Error') + ' ---',
+          '',
+          'Provider: ' + providerId,
+          'Input: ' + text.slice(0, 200),
+          'Time: ' + new Date().toISOString(),
+          '',
+          'Error: ' + (e.message || String(e)),
+        ];
+        if (e.status) lines.push('HTTP Status: ' + e.status);
+        if (e.stack) lines.push('', 'Stack:', e.stack);
+        errorReport(t('searchError') || 'Search failed', lines.join('\n'));
       }
     });
   },

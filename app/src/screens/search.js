@@ -6,7 +6,7 @@ import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { showLoader } from '../ui/loader.js';
 import { showToast } from '../ui/toast.js';
-import { prompt as modalPrompt } from '../ui/modal.js';
+import { prompt as modalPrompt, errorReport } from '../ui/modal.js';
 import { callLLM } from '../providers/index.js';
 import { buildPaginatedPrompt } from '../lib/prompt.js';
 import { parseActivities } from '../lib/parser.js';
@@ -128,7 +128,20 @@ async function doSearch(container, params, excludeNames) {
     return activities;
   } catch (err) {
     dismiss();
-    showToast(t('searchError') || 'Search failed: ' + err.message);
+    const lines = [
+      '--- ' + (t('searchError') || 'Search Error') + ' ---',
+      '',
+      'Provider: ' + (params.providerId || 'unknown'),
+      'City: ' + (params.city || 'N/A'),
+      'Dates: ' + (params.dateStart || '?') + ' - ' + (params.dateEnd || '?'),
+      'Time: ' + new Date().toISOString(),
+      '',
+      'Error: ' + (err.message || String(err)),
+    ];
+    if (err.status) lines.push('HTTP Status: ' + err.status);
+    if (err.stack) lines.push('', 'Stack:', err.stack);
+    const report = lines.join('\n');
+    errorReport(t('searchError') || 'Search failed', report);
     return [];
   }
 }
@@ -142,7 +155,10 @@ function renderResults(container, params) {
 
   const info = document.createElement('p');
   info.className = 'text-secondary';
-  info.textContent = (params.city || '') + ' | ' + (params.dateStart || '') + ' - ' + (params.dateEnd || '');
+  const infoParts = [];
+  if (params.city) infoParts.push(params.city);
+  if (params.dateStart || params.dateEnd) infoParts.push((params.dateStart || '') + ' - ' + (params.dateEnd || ''));
+  info.textContent = infoParts.join(' | ');
   container.appendChild(info);
 
   const listContainer = document.createElement('div');

@@ -4,6 +4,8 @@
 // modal.js — Overlay modal dialogs returning Promises
 // Uses only safe DOM methods (no innerHTML)
 
+import { t } from '../i18n/index.js';
+
 function createOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -57,7 +59,7 @@ export function alert(title, message) {
     box.appendChild(createTitle(title));
     box.appendChild(createMessage(message));
 
-    actions.appendChild(createButton('OK', 'btn btn-primary', () => {
+    actions.appendChild(createButton(t('ok') || 'OK', 'btn btn-primary', () => {
       removeOverlay(overlay);
       resolve();
     }));
@@ -77,12 +79,12 @@ export function confirm(title, message) {
     box.appendChild(createTitle(title));
     box.appendChild(createMessage(message));
 
-    actions.appendChild(createButton('Cancel', 'btn btn-secondary', () => {
+    actions.appendChild(createButton(t('cancel') || 'Cancel', 'btn btn-secondary', () => {
       removeOverlay(overlay);
       resolve(false);
     }));
 
-    actions.appendChild(createButton('OK', 'btn btn-primary', () => {
+    actions.appendChild(createButton(t('ok') || 'OK', 'btn btn-primary', () => {
       removeOverlay(overlay);
       resolve(true);
     }));
@@ -107,12 +109,12 @@ export function prompt(title, placeholder, defaultVal) {
     if (defaultVal != null) input.value = defaultVal;
     box.appendChild(input);
 
-    actions.appendChild(createButton('Cancel', 'btn btn-secondary', () => {
+    actions.appendChild(createButton(t('cancel') || 'Cancel', 'btn btn-secondary', () => {
       removeOverlay(overlay);
       resolve(null);
     }));
 
-    actions.appendChild(createButton('OK', 'btn btn-primary', () => {
+    actions.appendChild(createButton(t('ok') || 'OK', 'btn btn-primary', () => {
       const value = input.value;
       removeOverlay(overlay);
       resolve(value);
@@ -124,6 +126,66 @@ export function prompt(title, placeholder, defaultVal) {
 
     // Focus the input after it's in the DOM
     requestAnimationFrame(() => input.focus());
+  });
+}
+
+export function errorReport(title, reportText) {
+  return new Promise((resolve) => {
+    const overlay = createOverlay();
+    const box = createBox();
+
+    box.appendChild(createTitle(title));
+
+    const pre = document.createElement('pre');
+    pre.style.cssText = 'white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--bg-secondary,#f3f4f6);padding:12px;border-radius:8px;max-height:40vh;overflow:auto;margin-bottom:16px;user-select:text';
+    pre.textContent = reportText;
+    box.appendChild(pre);
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn-secondary';
+    copyBtn.textContent = t('copyReport') || 'Copy';
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(reportText);
+        copyBtn.textContent = t('copied') || 'Copied!';
+        setTimeout(() => { copyBtn.textContent = t('copyReport') || 'Copy'; }, 1500);
+      } catch (_) { /* clipboard not available */ }
+    });
+    btnRow.appendChild(copyBtn);
+
+    const waBtn = document.createElement('button');
+    waBtn.className = 'btn btn-secondary';
+    waBtn.style.cssText = 'background:#25D366;color:#fff;border-color:#25D366';
+    waBtn.textContent = 'WhatsApp';
+    waBtn.addEventListener('click', () => {
+      window.open('https://wa.me/?text=' + encodeURIComponent(reportText), '_blank');
+    });
+    btnRow.appendChild(waBtn);
+
+    if (navigator.share) {
+      const shareBtn = document.createElement('button');
+      shareBtn.className = 'btn btn-secondary';
+      shareBtn.textContent = t('shareReport') || 'Share';
+      shareBtn.addEventListener('click', () => {
+        navigator.share({ title, text: reportText }).catch(() => {});
+      });
+      btnRow.appendChild(shareBtn);
+    }
+
+    box.appendChild(btnRow);
+
+    const actions = createActions();
+    actions.appendChild(createButton(t('ok') || 'OK', 'btn btn-primary', () => {
+      removeOverlay(overlay);
+      resolve();
+    }));
+    box.appendChild(actions);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
   });
 }
 
@@ -151,7 +213,7 @@ export function actionSheet(title, options) {
     box.appendChild(list);
 
     const cancelActions = createActions();
-    cancelActions.appendChild(createButton('Cancel', 'btn btn-secondary', () => {
+    cancelActions.appendChild(createButton(t('cancel') || 'Cancel', 'btn btn-secondary', () => {
       removeOverlay(overlay);
       resolve(-1);
     }));

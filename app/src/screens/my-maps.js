@@ -77,7 +77,7 @@ function createMapCard(map, container, el) {
       // Export KML — delegate to export utility if available
       try {
         const { exportKml } = await import('../lib/export.js');
-        const mapData = db.readJSON(`map_${map.id}`, null);
+        const mapData = db.readJSON(`map_data_${map.id}`, null);
         if (mapData) {
           exportKml(mapData, map.title || 'map');
         }
@@ -93,7 +93,7 @@ function createMapCard(map, container, el) {
         let registry = db.readJSON('maps_registry', []);
         registry = registry.filter((m) => m.id !== map.id);
         db.writeJSON('maps_registry', registry);
-        db.remove(`map_${map.id}`);
+        db.remove(`map_data_${map.id}`);
         screenObj.mount(el);
       }
     }

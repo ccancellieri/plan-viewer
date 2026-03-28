@@ -560,3 +560,33 @@ label {
   line-height: 1.4;
 }
 .install-hint .icon { font-size: 22px; flex-shrink: 0; }
+
+/* Map card */
+.map-card {
+  position: relative;
+}
+.map-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  padding-right: 32px;
+}
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-icon:active {
+  background: var(--accent-light);
+}
+.map-card-more {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}

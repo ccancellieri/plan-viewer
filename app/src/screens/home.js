@@ -1,7 +1,7 @@
 // Copyright 2026 Carlo Cancellieri
 // All rights reserved. Proprietary license.
 
-import { t } from '../i18n/index.js';
+import { t, getLang } from '../i18n/index.js';
 import { navigate } from '../router.js';
 
 const MENU_ITEMS = [
@@ -91,8 +91,7 @@ export default {
     if (!isStandalone()) {
       const hint = getInstallHint();
       if (hint) {
-        const storedLang = localStorage.getItem('app_lang') || 'en';
-        const lang = storedLang.slice(0, 2);
+        const lang = getLang().slice(0, 2);
         const text = hint[lang] || hint.en;
         const banner = document.createElement('div');
         banner.className = 'install-hint mt-16';

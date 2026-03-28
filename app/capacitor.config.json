@@ -2,6 +2,9 @@
   "appId": "com.ccancellieri.planner",
   "appName": "Planner",
   "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  },
   "plugins": {
     "Geolocation": {
       "permissions": ["location"]
