@@ -81,10 +81,10 @@ export function parseActivities(text, dateStart, dateEnd) {
     return [];
   }
 
-  // Remove single-line JS comments
-  jsonStr = jsonStr.replace(/\/\/[^\n]*/g, '');
-  // Remove multi-line JS comments
-  jsonStr = jsonStr.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Remove single-line JS comments (only outside strings — match // at line start, not inside values like URLs)
+  jsonStr = jsonStr.replace(/^(\s*)\/\/[^\n]*/gm, '');
+  // Remove multi-line JS comments (only outside strings — simple heuristic, not preceded by ":")
+  jsonStr = jsonStr.replace(/(?<!")\/\*[\s\S]*?\*\//g, '');
 
   // Fix trailing commas before } or ]
   jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
