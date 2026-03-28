@@ -13,13 +13,14 @@ import { renderTimeline } from '../map/timeline.js';
 
 async function loadLeaflet() {
   if (window.L) return window.L;
+  const base = import.meta.env.BASE_URL;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = '/leaflet/leaflet.css';
+  link.href = base + 'leaflet/leaflet.css';
   document.head.appendChild(link);
   await new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = '/leaflet/leaflet.js';
+    script.src = base + 'leaflet/leaflet.js';
     script.onload = resolve;
     script.onerror = reject;
     document.head.appendChild(script);
