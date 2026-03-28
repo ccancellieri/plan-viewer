@@ -150,12 +150,12 @@ async function renderProviderStep(container) {
   const provider = providers[idx];
   const providerId = provider.id;
 
-  if (!provider.free) {
+  if (provider.signupUrl) {
     const storedKey = db.readJSON('apikey_' + providerId);
     if (!storedKey) {
       const key = await modalPrompt(
         t('apiKeyNeeded') || 'Enter API Key',
-        provider.label + ' API Key',
+        provider.label + ' API Key' + (provider.free ? ' (FREE)' : ''),
         ''
       );
       if (!key) {
