@@ -156,7 +156,8 @@ async function renderProviderStep(container) {
       const key = await modalPrompt(
         t('apiKeyNeeded') || 'Enter API Key',
         provider.label + ' API Key' + (provider.free ? ' (FREE)' : ''),
-        ''
+        '',
+        { linkUrl: provider.signupUrl, linkText: t('getKey') || 'Get a free key' }
       );
       if (!key) {
         renderDatesStep(container);

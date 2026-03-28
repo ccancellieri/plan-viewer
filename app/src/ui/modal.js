@@ -95,13 +95,23 @@ export function confirm(title, message) {
   });
 }
 
-export function prompt(title, placeholder, defaultVal) {
+export function prompt(title, placeholder, defaultVal, opts) {
   return new Promise((resolve) => {
     const overlay = createOverlay();
     const box = createBox();
     const actions = createActions();
 
     box.appendChild(createTitle(title));
+
+    if (opts && opts.linkUrl) {
+      const link = document.createElement('a');
+      link.href = opts.linkUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.style.cssText = 'display:block;margin-bottom:12px;color:var(--accent,#667eea);font-size:14px';
+      link.textContent = (opts.linkText || opts.linkUrl) + ' →';
+      box.appendChild(link);
+    }
 
     const input = document.createElement('input');
     input.type = 'text';

@@ -152,6 +152,7 @@
   "free": "Gratis",
   "keySet": "Clave configurada",
   "noKey": "Sin clave",
+  "getKey": "Obtener una clave gratis",
   "setKey": "Configurar clave",
   "updateKey": "Actualizar clave",
   "mapsStored": "Mapas guardados",

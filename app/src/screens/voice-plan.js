@@ -58,9 +58,12 @@ export default {
       }
 
       const providerId = provSelect.value;
+      const provider = providers.find((p) => p.id === providerId);
       const apiKey = db.readJSON('apikey_' + providerId, null);
       if (!apiKey) {
-        const key = await modalPrompt(t('apiKeyNeeded'), t('apiKeyMsg'), '');
+        const key = await modalPrompt(t('apiKeyNeeded'), t('apiKeyMsg'), '',
+          provider?.signupUrl ? { linkUrl: provider.signupUrl, linkText: t('getKey') || 'Get a free key' } : undefined
+        );
         if (!key) return;
         db.writeJSON('apikey_' + providerId, key);
       }

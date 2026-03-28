@@ -43,6 +43,17 @@ function createProviderCard(provider, container, el) {
   status.textContent = storedKey ? t('keySet') || 'Key set' : t('noKey') || 'No key set';
   card.appendChild(status);
 
+  if (provider.signupUrl) {
+    const link = document.createElement('a');
+    link.href = provider.signupUrl;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.className = 'text-sm mt-4';
+    link.style.cssText = 'display:block;color:var(--accent,#667eea)';
+    link.textContent = (t('getKey') || 'Get a free key') + ' →';
+    card.appendChild(link);
+  }
+
   const btn = document.createElement('button');
   btn.className = 'btn btn-secondary btn-block mt-8';
   btn.textContent = storedKey ? t('updateKey') || 'Update Key' : t('setKey') || 'Set Key';

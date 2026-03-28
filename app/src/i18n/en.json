@@ -152,6 +152,7 @@
   "free": "Free",
   "keySet": "Key set",
   "noKey": "No key",
+  "getKey": "Get a free key",
   "setKey": "Set key",
   "updateKey": "Update key",
   "mapsStored": "Maps stored",
