@@ -2,17 +2,19 @@
 // All rights reserved. Proprietary license.
 
 const screens = {};
+const lastParams = {};
 
 export function registerScreen(name, handler) {
   screens[name] = handler;
 }
 
-export function navigate(screen, params = {}) {
+export function navigate(screen, params) {
+  if (params != null) lastParams[screen] = params;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.querySelector(`[data-screen="${screen}"]`);
   if (el) {
     el.classList.add('active');
-    screens[screen]?.mount(el, params);
+    screens[screen]?.mount(el, lastParams[screen] || {});
   }
   window.location.hash = screen;
 }
