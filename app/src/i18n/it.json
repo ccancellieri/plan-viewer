@@ -165,5 +165,8 @@
   "mapView": "Mappa",
   "mapSaved": "Mappa salvata!",
   "noMoreResults": "Nessun altro risultato",
+  "loadAll": "Carica tutto",
+  "stop": "Ferma",
+  "download": "Scarica",
   "locating": "Localizzazione..."
 }

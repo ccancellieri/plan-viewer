@@ -139,6 +139,36 @@ export function prompt(title, placeholder, defaultVal, opts) {
   });
 }
 
+export function textareaPrompt(title, message, placeholder) {
+  return new Promise((resolve) => {
+    const overlay = createOverlay();
+    const box = createBox();
+
+    box.appendChild(createTitle(title));
+    if (message) box.appendChild(createMessage(message));
+
+    const textarea = document.createElement('textarea');
+    textarea.style.cssText = 'width:100%;min-height:150px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;resize:vertical;box-sizing:border-box';
+    if (placeholder) textarea.placeholder = placeholder;
+    box.appendChild(textarea);
+
+    const actions = createActions();
+    actions.appendChild(createButton(t('cancel') || 'Cancel', 'btn btn-secondary', () => {
+      removeOverlay(overlay);
+      resolve(null);
+    }));
+    actions.appendChild(createButton(t('ok') || 'OK', 'btn btn-primary', () => {
+      removeOverlay(overlay);
+      resolve(textarea.value);
+    }));
+
+    box.appendChild(actions);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => textarea.focus());
+  });
+}
+
 export function errorReport(title, reportText) {
   return new Promise((resolve) => {
     const overlay = createOverlay();

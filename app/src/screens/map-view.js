@@ -288,6 +288,30 @@ export default {
     });
     shareBar.appendChild(shareBtn);
 
+    // Download button — export all activities as JSON
+    const dlBtn = document.createElement('button');
+    dlBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;border:none;cursor:pointer;color:white;background:#27ae60';
+    dlBtn.textContent = t('download') || 'Download';
+    dlBtn.addEventListener('click', () => {
+      const exportData = {
+        title: mapData.title,
+        city: mapData.city,
+        center: { lat: center.lat, lng: center.lng, name: center.name },
+        dateStart: mapData.dateStart,
+        dateEnd: mapData.dateEnd,
+        activities,
+      };
+      const json = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (mapData.title || mapData.city || 'map') + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    shareBar.appendChild(dlBtn);
+
     // Add Events button — enrich map with more activities from another AI
     const addEventsBtn = document.createElement('button');
     addEventsBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;border:none;cursor:pointer;color:white;background:#f59e0b';

@@ -6,7 +6,7 @@ import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { showLoader } from '../ui/loader.js';
 import { showToast } from '../ui/toast.js';
-import { prompt as modalPrompt, errorReport } from '../ui/modal.js';
+import { prompt as modalPrompt, errorReport, alert as modalAlert, textareaPrompt } from '../ui/modal.js';
 import { callLLM } from '../providers/index.js';
 import { buildPaginatedPrompt } from '../lib/prompt.js';
 import { parseActivities } from '../lib/parser.js';
@@ -112,6 +112,27 @@ async function doSearch(container, params, excludeNames) {
       null
     );
 
+    // Manual mode: copy prompt to clipboard, let user paste AI response
+    if (params.providerId === 'manual') {
+      dismiss();
+      const fullPrompt = systemPrompt + '\n\n' + userPrompt;
+      try { await navigator.clipboard.writeText(fullPrompt); } catch (_) {}
+      await modalAlert(t('manualTitle') || 'Manual Mode', t('manualMsg') || 'The prompt has been copied to your clipboard.\n\n1. Open any AI chat\n2. Paste the prompt\n3. Copy the JSON response\n4. Come back and paste it');
+      const response = await textareaPrompt(
+        t('manualPaste') || 'Paste Response',
+        t('manualPasteMsg') || 'Paste the JSON response from the AI:',
+        '[{"name": "...", "category": "...", ...}]'
+      );
+      if (!response) return [];
+      const activities = parseActivities(response, params.dateStart, params.dateEnd);
+      if (activities.length > 0) {
+        const geoDismiss = showLoader('Geocoding addresses...');
+        await geocodeActivities(activities, params.city || '');
+        geoDismiss();
+      }
+      return activities;
+    }
+
     const apiKey = db.readJSON('apikey_' + params.providerId, '');
     if (!apiKey) {
       dismiss();
@@ -210,26 +231,62 @@ function renderResults(container, params) {
   }
 
   // Counter
-  if (allActivities.length > 0) {
-    const counter = document.createElement('p');
-    counter.className = 'text-secondary text-sm text-center mt-8';
-    counter.textContent = allActivities.length + ' ' + (t('activities') || 'activities');
-    container.appendChild(counter);
-  }
+  const counter = document.createElement('p');
+  counter.className = 'text-secondary text-sm text-center mt-8';
+  container.appendChild(counter);
 
-  // Infinite scroll sentinel
+  // Load controls
   let loadingMore = false;
   let exhausted = false;
-  const sentinel = document.createElement('div');
-  sentinel.className = 'text-secondary text-center mt-8 mb-8';
-  sentinel.style.minHeight = '48px';
-  sentinel.style.lineHeight = '48px';
-  container.appendChild(sentinel);
+  let stopRequested = false;
+
+  const controlRow = document.createElement('div');
+  controlRow.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:8px 0;align-items:center';
+  container.appendChild(controlRow);
+
+  const statusText = document.createElement('span');
+  statusText.className = 'text-secondary text-sm';
+
+  const loadMoreBtn = document.createElement('button');
+  loadMoreBtn.className = 'btn btn-secondary';
+  loadMoreBtn.textContent = t('loadMore') || 'Load More';
+
+  const loadAllBtn = document.createElement('button');
+  loadAllBtn.className = 'btn btn-secondary';
+  loadAllBtn.style.cssText = 'background:#667eea;color:white;border-color:#667eea';
+  loadAllBtn.textContent = t('loadAll') || 'Load All';
+
+  const stopBtn = document.createElement('button');
+  stopBtn.className = 'btn btn-secondary';
+  stopBtn.style.cssText = 'background:#e74c3c;color:white;border-color:#e74c3c';
+  stopBtn.textContent = t('stop') || 'Stop';
+
+  const downloadBtn = document.createElement('button');
+  downloadBtn.className = 'btn btn-secondary';
+  downloadBtn.textContent = t('download') || 'Download JSON';
+
+  function updateControls() {
+    while (controlRow.firstChild) controlRow.removeChild(controlRow.firstChild);
+    if (exhausted) {
+      statusText.textContent = t('noMoreResults') || 'All loaded';
+      controlRow.appendChild(statusText);
+    } else if (loadingMore) {
+      statusText.textContent = t('searching') || 'Loading...';
+      controlRow.appendChild(statusText);
+      controlRow.appendChild(stopBtn);
+    } else {
+      controlRow.appendChild(loadMoreBtn);
+      controlRow.appendChild(loadAllBtn);
+    }
+    if (allActivities.length > 0) controlRow.appendChild(downloadBtn);
+    counter.textContent = allActivities.length + ' ' + (t('activities') || 'activities');
+    updateActionBtn();
+  }
 
   async function loadMore() {
     if (loadingMore || exhausted) return;
     loadingMore = true;
-    sentinel.textContent = t('searching') || 'Loading...';
+    updateControls();
     const excludeNames = allActivities.map((a) => a.name);
     const newActivities = await doSearch(container, params, excludeNames);
     if (newActivities.length > 0) {
@@ -238,38 +295,54 @@ function renderResults(container, params) {
         const card = createActivityCard(activity, params.centerLat, params.centerLng);
         listContainer.appendChild(card);
       });
-      sentinel.textContent = '';
     } else {
       exhausted = true;
-      sentinel.textContent = t('noMoreResults') || 'No more results.';
     }
     loadingMore = false;
+    updateControls();
   }
 
-  // Observe sentinel visibility for infinite scroll
-  const scrollParent = container.closest('.content') || container;
-  const observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && allActivities.length > 0) {
-      loadMore();
-    }
-  }, { root: scrollParent, rootMargin: '200px' });
-  observer.observe(sentinel);
+  loadMoreBtn.addEventListener('click', () => loadMore());
 
-  // Manual load more as fallback
-  sentinel.style.cursor = 'pointer';
-  sentinel.addEventListener('click', () => {
-    if (!exhausted) loadMore();
+  loadAllBtn.addEventListener('click', async () => {
+    stopRequested = false;
+    while (!exhausted && !stopRequested) {
+      await loadMore();
+    }
   });
+
+  stopBtn.addEventListener('click', () => { stopRequested = true; });
+
+  downloadBtn.addEventListener('click', () => {
+    const data = JSON.stringify(allActivities, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (params.city || 'activities') + '_' + (params.dateStart || 'trip') + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  updateControls();
 
   // Action buttons (sticky at bottom)
   const btnRow = document.createElement('div');
   btnRow.className = 'flex-col gap-8 mt-8';
   btnRow.style.cssText = 'position:sticky;bottom:0;padding:12px 0;background:var(--bg);z-index:5';
+  let actionBtn = null;
+
+  function updateActionBtn() {
+    if (actionBtn) {
+      const label = params.mergeMapId ? (t('addToMap') || 'Add to Map') : (t('createMap') || 'Create Map');
+      actionBtn.textContent = allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + label;
+    }
+  }
 
   if (params.mergeMapId) {
     const mergeBtn = document.createElement('button');
     mergeBtn.className = 'btn btn-primary btn-block';
-    mergeBtn.textContent = allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + (t('addToMap') || 'Add to Map');
+    actionBtn = mergeBtn;
     mergeBtn.addEventListener('click', () => {
       const existing = db.readJSON('map_data_' + params.mergeMapId);
       if (!existing) return;
@@ -284,7 +357,7 @@ function renderResults(container, params) {
   } else {
     const createMapBtn = document.createElement('button');
     createMapBtn.className = 'btn btn-primary btn-block';
-    createMapBtn.textContent = allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + (t('createMap') || 'Create Map');
+    actionBtn = createMapBtn;
     createMapBtn.addEventListener('click', async () => {
       const mapName = await modalPrompt(
         t('mapName') || 'Map name',
@@ -322,6 +395,7 @@ function renderResults(container, params) {
   }
 
   container.appendChild(btnRow);
+  updateActionBtn();
 }
 
 export default {

@@ -165,5 +165,8 @@
   "mapView": "Map",
   "mapSaved": "Map saved!",
   "noMoreResults": "No more results",
+  "loadAll": "Load All",
+  "stop": "Stop",
+  "download": "Download",
   "locating": "Locating..."
 }
