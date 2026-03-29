@@ -4,7 +4,7 @@
 export default {
   id: 'gemini',
   label: 'Gemini (Google)',
-  model: 'gemini-2.5-flash',
+  model: 'gemini-2.0-flash',
   free: true,
   webSearch: true,
   signupUrl: 'https://aistudio.google.com/apikey',
@@ -13,7 +13,7 @@ export default {
     const payload = {
       system_instruction: { parts: [{ text: systemPrompt }] },
       contents: [{ parts: [{ text: userPrompt }] }],
-      generationConfig: { maxOutputTokens: 8192 },
+      generationConfig: { maxOutputTokens: 8192, responseMimeType: 'application/json' },
     };
 
     // First attempt with google_search tool
