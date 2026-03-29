@@ -6,7 +6,7 @@ import './map/map.css';
 import { loadLocale, t } from './i18n/index.js';
 import { initStorage, db } from './storage/index.js';
 import webBackend from './storage/web.js';
-import { registerScreen, initRouter } from './router.js';
+import { registerScreen, initRouter, navigate } from './router.js';
 
 // Screen modules
 import homeScreen from './screens/home.js';
@@ -47,6 +47,15 @@ function initBackButtons() {
   });
 }
 
+// Home button handler
+function initHomeButtons() {
+  document.querySelectorAll('[data-home]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigate('home');
+    });
+  });
+}
+
 // Register all screens
 registerScreen('home', homeScreen);
 registerScreen('new-trip', newTripScreen);
@@ -63,6 +72,7 @@ async function boot() {
   await loadLocale(lang);
   applyTranslations();
   initBackButtons();
+  initHomeButtons();
   initRouter('home');
 
   // Register service worker for PWA

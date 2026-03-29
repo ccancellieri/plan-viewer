@@ -103,6 +103,24 @@ html, body {
   flex: 1;
 }
 
+.header-home {
+  background: var(--bg-card, #f0f0f0);
+  border: none;
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 22px;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+}
+
 /* Content area */
 .content {
   flex: 1;
