@@ -6,8 +6,6 @@ import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { createChipSelect } from '../ui/chip-select.js';
 
-const STEPS = ['mood', 'time', 'budget', 'group', 'distance', 'interests', 'avoid', 'summary'];
-
 function getMoodOptions() {
   return [
     { value: 'relax', label: t('qMoodRelax') || 'Relax' },
@@ -61,7 +59,6 @@ function getDistanceOptions() {
 }
 
 let profile = {};
-let currentStep = 0;
 let tripParams = {};
 
 function clearContainer(container) {
@@ -70,312 +67,214 @@ function clearContainer(container) {
   }
 }
 
-function createNavButtons(container, onBack, onNext, nextLabel) {
-  const btnRow = document.createElement('div');
-  btnRow.className = 'nav-btns';
-
-  if (onBack) {
-    const backBtn = document.createElement('button');
-    backBtn.className = 'btn btn-secondary';
-    backBtn.textContent = t('back') || 'Back';
-    backBtn.addEventListener('click', onBack);
-    btnRow.appendChild(backBtn);
-  }
-
-  const nextBtn = document.createElement('button');
-  nextBtn.className = 'btn btn-primary';
-  nextBtn.textContent = nextLabel || t('next') || 'Next';
-  nextBtn.addEventListener('click', onNext);
-  btnRow.appendChild(nextBtn);
-
-  container.appendChild(btnRow);
+function translateValues(values, optionsFn) {
+  if (!values || !values.length) return '';
+  const opts = optionsFn();
+  return values.map((v) => {
+    const opt = opts.find((o) => o.value === v);
+    return opt ? opt.label : v;
+  }).join(', ');
 }
 
-function renderStep(container) {
+function translateValue(value, optionsFn) {
+  if (!value) return '';
+  const opt = optionsFn().find((o) => o.value === value);
+  return opt ? opt.label : value;
+}
+
+// Inline editor for chip-select fields (multi or single)
+function renderChipEditor(row, detailEl, field, optionsFn, multi) {
+  if (detailEl._open) {
+    // Close editor
+    detailEl.textContent = field.displayValue() || '-';
+    detailEl._open = false;
+    return;
+  }
+  detailEl._open = true;
+  detailEl.textContent = '';
+
+  const selected = multi
+    ? (profile[field.key] || [])
+    : (profile[field.key] ? [profile[field.key]] : []);
+
+  const chips = createChipSelect(optionsFn(), selected, (val) => {
+    if (multi) {
+      profile[field.key] = val;
+    } else {
+      profile[field.key] = val[val.length - 1] || null;
+    }
+  });
+  detailEl.appendChild(chips);
+}
+
+// Inline editor for text input fields
+function renderTextEditor(row, detailEl, field) {
+  if (detailEl._open) {
+    detailEl.textContent = field.displayValue() || '-';
+    detailEl._open = false;
+    return;
+  }
+  detailEl._open = true;
+  detailEl.textContent = '';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'input';
+  input.style.cssText = 'margin:4px 0;font-size:13px';
+  input.placeholder = field.placeholder || '';
+  input.value = profile[field.key] || '';
+  input.addEventListener('input', () => { profile[field.key] = input.value; });
+  input.addEventListener('blur', () => {
+    // Update display after editing
+    setTimeout(() => {
+      if (detailEl._open) {
+        detailEl._open = false;
+        detailEl.textContent = '';
+        detailEl.textContent = field.displayValue() || '-';
+      }
+    }, 150);
+  });
+  detailEl.appendChild(input);
+  input.focus();
+}
+
+function doSearch(loadAll) {
+  db.writeJSON('search_profile', profile);
+  navigate('search', {
+    ...tripParams,
+    mood: profile.mood || [],
+    time: profile.time || [],
+    budget: profile.budget || null,
+    group: profile.group || null,
+    distance: profile.distance || null,
+    interests: profile.interests || '',
+    avoid: profile.avoid || '',
+    loadAll: loadAll || false,
+  });
+}
+
+function renderReview(container) {
   clearContainer(container);
-  const step = STEPS[currentStep];
 
-  const heading = document.createElement('h3');
+  // Compact header with trip info
+  const header = document.createElement('div');
+  header.style.cssText = 'margin-bottom:12px';
+  const title = document.createElement('h3');
+  title.style.cssText = 'margin:0 0 4px 0';
+  title.textContent = t('qSummary') || 'Search Profile';
+  header.appendChild(title);
 
-  const goBack = currentStep > 0
-    ? () => { currentStep--; renderStep(container); }
-    : null;
-  const goNext = () => { currentStep++; renderStep(container); };
-
-  function addDesc(text) {
-    const p = document.createElement('p');
-    p.className = 'text-secondary text-sm mb-8';
-    p.textContent = text;
-    container.appendChild(p);
+  if (tripParams.city) {
+    const sub = document.createElement('p');
+    sub.className = 'text-secondary text-sm';
+    sub.style.margin = '0';
+    const parts = [tripParams.city];
+    if (tripParams.dateStart) parts.push(tripParams.dateStart + (tripParams.dateEnd ? ' → ' + tripParams.dateEnd : ''));
+    sub.textContent = parts.join(' | ');
+    header.appendChild(sub);
   }
+  container.appendChild(header);
 
-  switch (step) {
-    case 'mood': {
-      heading.textContent = t('qMood') || 'What mood?';
-      container.appendChild(heading);
-      addDesc(t('qMoodMsg') || 'What kind of experience are you looking for?');
-      const chips = createChipSelect(getMoodOptions(), profile.mood || [], (val) => { profile.mood = val; });
-      container.appendChild(chips);
-      createNavButtons(container, goBack, goNext);
-      break;
-    }
-    case 'time': {
-      heading.textContent = t('qTime') || 'Preferred times?';
-      container.appendChild(heading);
-      addDesc(t('qTimeMsg') || 'When do you want activities?');
-      const chips = createChipSelect(getTimeOptions(), profile.time || [], (val) => { profile.time = val; });
-      container.appendChild(chips);
-      createNavButtons(container, goBack, goNext);
-      break;
-    }
-    case 'budget': {
-      heading.textContent = t('qBudget') || 'Budget?';
-      container.appendChild(heading);
-      addDesc(t('qBudgetMsg') || 'How much do you want to spend?');
-      const chips = createChipSelect(getBudgetOptions(), profile.budget ? [profile.budget] : [], (val) => { profile.budget = val[val.length - 1] || null; });
-      container.appendChild(chips);
-      createNavButtons(container, goBack, goNext);
-      break;
-    }
-    case 'group': {
-      heading.textContent = t('qGroup') || 'Group type?';
-      container.appendChild(heading);
-      addDesc(t('qGroupMsg') || 'Who are you going with?');
-      const chips = createChipSelect(getGroupOptions(), profile.group ? [profile.group] : [], (val) => { profile.group = val[val.length - 1] || null; });
-      container.appendChild(chips);
-      createNavButtons(container, goBack, goNext);
-      break;
-    }
-    case 'distance': {
-      heading.textContent = t('qDistance') || 'Max distance?';
-      container.appendChild(heading);
-      addDesc(t('qDistanceMsg') || 'How far do you want to go?');
-      const chips = createChipSelect(getDistanceOptions(), profile.distance ? [profile.distance] : [], (val) => { profile.distance = val[val.length - 1] || null; });
-      container.appendChild(chips);
-      createNavButtons(container, goBack, goNext);
-      break;
-    }
-    case 'interests': {
-      heading.textContent = t('qSpecific') || 'Specific interests?';
-      container.appendChild(heading);
-      addDesc(t('qSpecificMsg') || 'Anything specific you want to find?');
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'input';
-      input.placeholder = t('qSpecificPlaceholder') || 'e.g. live music, seafood, hiking...';
-      input.value = profile.interests || '';
-      input.addEventListener('input', () => { profile.interests = input.value; });
-      container.appendChild(input);
-      createNavButtons(container, goBack, goNext);
-      break;
-    }
-    case 'avoid': {
-      heading.textContent = t('qAvoid') || 'Anything to avoid?';
-      container.appendChild(heading);
-      addDesc(t('qAvoidMsg') || 'Anything you want to avoid?');
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'input';
-      input.placeholder = t('qAvoidPlaceholder') || 'e.g. crowded places, expensive restaurants...';
-      input.value = profile.avoid || '';
-      input.addEventListener('input', () => { profile.avoid = input.value; });
-      container.appendChild(input);
-      createNavButtons(container, goBack, goNext);
-      break;
-    }
-    case 'summary': {
-      renderSummary(container);
-      break;
-    }
-  }
-}
-
-function renderSummary(container) {
-  const heading = document.createElement('h3');
-  heading.textContent = t('qSummary') || 'Summary';
-  container.appendChild(heading);
-
-  function translateValues(values, optionsFn) {
-    if (!values || !values.length) return '';
-    const opts = optionsFn();
-    return values.map((v) => {
-      const opt = opts.find((o) => o.value === v);
-      return opt ? opt.label : v;
-    }).join(', ');
-  }
-
-  function translateValue(value, optionsFn) {
-    if (!value) return '';
-    const opt = optionsFn().find((o) => o.value === value);
-    return opt ? opt.label : value;
-  }
-
+  // Field definitions
   const fields = [
-    { key: 'mood', label: t('qMood') || 'Mood', value: translateValues(profile.mood, getMoodOptions) },
-    { key: 'time', label: t('qTime') || 'Time', value: translateValues(profile.time, getTimeOptions) },
-    { key: 'budget', label: t('qBudget') || 'Budget', value: translateValue(profile.budget, getBudgetOptions) },
-    { key: 'group', label: t('qGroup') || 'Group', value: translateValue(profile.group, getGroupOptions) },
-    { key: 'distance', label: t('qDistance') || 'Distance', value: translateValue(profile.distance, getDistanceOptions) },
-    { key: 'interests', label: t('qSpecific') || 'Interests', value: profile.interests || '' },
-    { key: 'avoid', label: t('qAvoid') || 'Avoid', value: profile.avoid || '' },
+    { key: 'mood', label: t('qMood') || 'Mood', type: 'chips', multi: true, optionsFn: getMoodOptions, displayValue: () => translateValues(profile.mood, getMoodOptions) },
+    { key: 'time', label: t('qTime') || 'Time', type: 'chips', multi: true, optionsFn: getTimeOptions, displayValue: () => translateValues(profile.time, getTimeOptions) },
+    { key: 'budget', label: t('qBudget') || 'Budget', type: 'chips', multi: false, optionsFn: getBudgetOptions, displayValue: () => translateValue(profile.budget, getBudgetOptions) },
+    { key: 'group', label: t('qGroup') || 'Group', type: 'chips', multi: false, optionsFn: getGroupOptions, displayValue: () => translateValue(profile.group, getGroupOptions) },
+    { key: 'distance', label: t('qDistance') || 'Distance', type: 'chips', multi: false, optionsFn: getDistanceOptions, displayValue: () => translateValue(profile.distance, getDistanceOptions) },
+    { key: 'interests', label: t('qSpecific') || 'Interests', type: 'text', placeholder: t('qSpecificPlaceholder') || 'e.g. live music, seafood...', displayValue: () => profile.interests || '' },
+    { key: 'avoid', label: t('qAvoid') || 'Avoid', type: 'text', placeholder: t('qAvoidPlaceholder') || 'e.g. crowded places...', displayValue: () => profile.avoid || '' },
   ];
 
-  fields.forEach((f, i) => {
+  // Render each field as a compact expandable row
+  fields.forEach((field) => {
     const row = document.createElement('div');
-    row.className = 'summary-row flex-row gap-8 mt-4';
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer';
+
+    const headerRow = document.createElement('div');
+    headerRow.style.cssText = 'display:flex;align-items:center;gap:8px';
 
     const label = document.createElement('strong');
-    label.textContent = f.label + ': ';
-    row.appendChild(label);
+    label.style.cssText = 'font-size:13px;min-width:70px;flex-shrink:0';
+    label.textContent = field.label;
+    headerRow.appendChild(label);
 
-    const val = document.createElement('span');
-    val.textContent = f.value || '-';
-    row.appendChild(val);
+    const valueSpan = document.createElement('span');
+    valueSpan.style.cssText = 'font-size:13px;color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    valueSpan.textContent = field.displayValue() || '-';
+    headerRow.appendChild(valueSpan);
 
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn btn-small btn-secondary';
-    editBtn.textContent = t('qEdit') || 'Edit';
-    editBtn.addEventListener('click', () => {
-      currentStep = i;
-      renderStep(container);
+    const arrow = document.createElement('span');
+    arrow.style.cssText = 'font-size:11px;color:var(--text-secondary);flex-shrink:0';
+    arrow.textContent = '▼';
+    headerRow.appendChild(arrow);
+
+    row.appendChild(headerRow);
+
+    // Detail area (hidden by default, shown when tapped)
+    const detailEl = document.createElement('div');
+    detailEl.style.cssText = 'margin-top:4px';
+    detailEl._open = false;
+    row.appendChild(detailEl);
+
+    headerRow.addEventListener('click', () => {
+      if (field.type === 'chips') {
+        renderChipEditor(row, detailEl, field, field.optionsFn, field.multi);
+      } else {
+        renderTextEditor(row, detailEl, field);
+      }
+      arrow.textContent = detailEl._open ? '▲' : '▼';
+      // Update value display when closing
+      if (!detailEl._open) {
+        valueSpan.textContent = field.displayValue() || '-';
+      }
     });
-    row.appendChild(editBtn);
 
     container.appendChild(row);
   });
 
-  function doSearch(loadAll) {
-    // Save profile for reuse in future searches
-    db.writeJSON('search_profile', profile);
-    navigate('search', {
-      ...tripParams,
-      mood: profile.mood || [],
-      time: profile.time || [],
-      budget: profile.budget || null,
-      group: profile.group || null,
-      distance: profile.distance || null,
-      interests: profile.interests || '',
-      avoid: profile.avoid || '',
-      loadAll: loadAll || false,
-    });
-  }
-
-  const hint = document.createElement('p');
-  hint.className = 'text-secondary text-sm text-center mt-8';
-  hint.textContent = t('qEditOrSearch') || 'Tap Search to go, or tap any field to edit it';
-  container.appendChild(hint);
-
-  const btnRow = document.createElement('div');
-  btnRow.className = 'nav-btns';
-
-  const backBtn = document.createElement('button');
-  backBtn.className = 'btn btn-secondary';
-  backBtn.textContent = t('back') || 'Back';
-  backBtn.addEventListener('click', () => {
-    currentStep = STEPS.length - 2;
-    renderStep(container);
-  });
-  btnRow.appendChild(backBtn);
+  // Search buttons — prominent, at the bottom
+  const btnArea = document.createElement('div');
+  btnArea.style.cssText = 'margin-top:16px;display:flex;flex-direction:column;gap:8px';
 
   const searchBtn = document.createElement('button');
-  searchBtn.className = 'btn btn-primary';
+  searchBtn.className = 'btn btn-primary btn-block';
+  searchBtn.style.cssText = 'font-size:16px;padding:14px';
   searchBtn.textContent = (t('qSearch') || 'Search') + ' (~20)';
   searchBtn.addEventListener('click', () => doSearch(false));
-  btnRow.appendChild(searchBtn);
-
-  container.appendChild(btnRow);
+  btnArea.appendChild(searchBtn);
 
   const searchAllBtn = document.createElement('button');
-  searchAllBtn.className = 'btn btn-primary btn-block mt-8';
-  searchAllBtn.style.cssText = 'background:#667eea;border-color:#667eea';
+  searchAllBtn.className = 'btn btn-secondary btn-block';
+  searchAllBtn.style.cssText = 'background:#667eea;color:white;border-color:#667eea';
   searchAllBtn.textContent = t('loadAll') || 'Search All';
   searchAllBtn.addEventListener('click', () => doSearch(true));
-  container.appendChild(searchAllBtn);
-}
+  btnArea.appendChild(searchAllBtn);
 
-function renderProfileChoice(container) {
-  clearContainer(container);
-
-  const heading = document.createElement('h3');
-  heading.textContent = t('qTitle') || 'Trip Profile';
-  container.appendChild(heading);
-
-  const msg = document.createElement('p');
-  msg.className = 'text-secondary';
-  msg.textContent = t('qMsg') || 'You have a saved profile from a previous search.';
-  container.appendChild(msg);
-
-  // Show saved profile summary
-  const saved = db.readJSON('search_profile', {});
-  const summaryDiv = document.createElement('div');
-  summaryDiv.className = 'mt-8 mb-8';
-  summaryDiv.style.cssText = 'padding:12px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border)';
-  const fields = [
-    { label: t('qMood') || 'Mood', value: (saved.mood || []).join(', ') },
-    { label: t('qTime') || 'Time', value: (saved.time || []).join(', ') },
-    { label: t('qBudget') || 'Budget', value: saved.budget || '' },
-    { label: t('qGroup') || 'Group', value: saved.group || '' },
-    { label: t('qDistance') || 'Distance', value: saved.distance || '' },
-    { label: t('qSpecific') || 'Interests', value: saved.interests || '' },
-    { label: t('qAvoid') || 'Avoid', value: saved.avoid || '' },
-  ];
-  fields.forEach((f) => {
-    if (!f.value) return;
-    const row = document.createElement('div');
-    row.style.cssText = 'font-size:13px;margin:2px 0';
-    const b = document.createElement('strong');
-    b.textContent = f.label + ': ';
-    row.appendChild(b);
-    row.appendChild(document.createTextNode(f.value));
-    summaryDiv.appendChild(row);
-  });
-  container.appendChild(summaryDiv);
-
-  const reuseBtn = document.createElement('button');
-  reuseBtn.className = 'btn btn-primary btn-block';
-  reuseBtn.textContent = t('qUseGlobal') || 'Use saved profile';
-  reuseBtn.addEventListener('click', () => {
-    profile = { ...saved };
-    currentStep = STEPS.indexOf('summary');
-    renderStep(container);
-  });
-  container.appendChild(reuseBtn);
-
-  const editBtn = document.createElement('button');
-  editBtn.className = 'btn btn-secondary btn-block mt-8';
-  editBtn.textContent = t('qEdit') || 'Edit profile';
-  editBtn.addEventListener('click', () => {
-    profile = { ...saved };
-    currentStep = 0;
-    renderStep(container);
-  });
-  container.appendChild(editBtn);
-
-  const freshBtn = document.createElement('button');
-  freshBtn.className = 'btn btn-secondary btn-block mt-8';
-  freshBtn.textContent = t('qFromScratch') || 'Start fresh';
-  freshBtn.addEventListener('click', () => {
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'btn btn-secondary btn-block';
+  resetBtn.style.cssText = 'font-size:12px;opacity:0.7';
+  resetBtn.textContent = t('qFromScratch') || 'Reset profile';
+  resetBtn.addEventListener('click', () => {
     profile = {};
-    currentStep = 0;
-    renderStep(container);
+    db.writeJSON('search_profile', {});
+    renderReview(container);
   });
-  container.appendChild(freshBtn);
+  btnArea.appendChild(resetBtn);
+
+  container.appendChild(btnArea);
 }
 
 export default {
   mount(el, params) {
     tripParams = params || {};
-    profile = {};
-    currentStep = 0;
     const content = el.querySelector('#questionnaire-content') || el;
     clearContainer(content);
 
-    // If a saved profile exists, offer to reuse it
+    // Always load saved profile — show compact review immediately
     const savedProfile = db.readJSON('search_profile', null);
-    if (savedProfile && Object.keys(savedProfile).some((k) => savedProfile[k] && (Array.isArray(savedProfile[k]) ? savedProfile[k].length > 0 : true))) {
-      renderProfileChoice(content);
-    } else {
-      renderStep(content);
-    }
+    profile = savedProfile && typeof savedProfile === 'object' ? { ...savedProfile } : {};
+
+    renderReview(content);
   },
 };
