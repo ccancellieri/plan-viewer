@@ -4,7 +4,7 @@
 /**
  * Attempt to repair a truncated JSON string (e.g. from a cut-off LLM response).
  * Walks the string tracking brace/bracket depth, string state and escapes,
- * then finds the last complete object closing brace at depth 0 and wraps it.
+ * then finds the last complete object inside the top-level array and closes it.
  */
 export function repairTruncatedJSON(jsonStr) {
   let depth = 0;
@@ -36,7 +36,8 @@ export function repairTruncatedJSON(jsonStr) {
       depth++;
     } else if (ch === '}' || ch === ']') {
       depth--;
-      if (ch === '}' && depth === 0) {
+      // Track last complete object: depth 0 (standalone) or depth 1 (inside top-level array)
+      if (ch === '}' && (depth === 0 || depth === 1)) {
         lastCompleteObj = i;
       }
     }
@@ -53,7 +54,8 @@ export function repairTruncatedJSON(jsonStr) {
 
   // If it already starts with '[', close it; otherwise wrap in array
   if (inner.trimStart().startsWith('[')) {
-    return inner + ']';
+    // Remove any trailing comma before closing
+    return inner.replace(/,\s*$/, '') + ']';
   }
   return '[' + inner + ']';
 }
@@ -69,12 +71,17 @@ export function parseActivities(text, dateStart, dateEnd) {
   let cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '');
 
   // Try to isolate a JSON array or object
+  // First try complete array [...], then truncated array [... (no closing bracket)
   const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
-  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+  const truncatedArrayMatch = !arrayMatch ? cleaned.match(/\[[\s\S]*\{[\s\S]*\}/) : null;
+  const objectMatch = !arrayMatch && !truncatedArrayMatch ? cleaned.match(/\{[\s\S]*\}/) : null;
 
   let jsonStr;
   if (arrayMatch) {
     jsonStr = arrayMatch[0];
+  } else if (truncatedArrayMatch) {
+    // Truncated array — repair will close it
+    jsonStr = truncatedArrayMatch[0];
   } else if (objectMatch) {
     jsonStr = '[' + objectMatch[0] + ']';
   } else {
