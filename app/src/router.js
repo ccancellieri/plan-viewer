@@ -3,6 +3,7 @@
 
 const screens = {};
 const lastParams = {};
+let navigating = false;
 
 export function registerScreen(name, handler) {
   screens[name] = handler;
@@ -16,7 +17,9 @@ export function navigate(screen, params) {
     el.classList.add('active');
     screens[screen]?.mount(el, lastParams[screen] || {});
   }
+  navigating = true;
   window.location.hash = screen;
+  navigating = false;
 }
 
 export function getCurrentScreen() {
@@ -25,6 +28,7 @@ export function getCurrentScreen() {
 
 export function initRouter(defaultScreen = 'home') {
   window.addEventListener('hashchange', () => {
+    if (navigating) return;
     const screen = getCurrentScreen();
     if (screens[screen]) navigate(screen);
   });

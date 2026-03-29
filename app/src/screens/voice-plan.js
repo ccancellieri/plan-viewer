@@ -37,6 +37,7 @@ export default {
     const provSelect = document.createElement('select');
     providers.forEach(p => {
       if (p.id === 'manual') return;
+      if (!db.readJSON('apikey_' + p.id)) return;
       const opt = document.createElement('option');
       opt.value = p.id;
       opt.textContent = p.label + (p.free ? ' (FREE)' : '');

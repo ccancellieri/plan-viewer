@@ -1,6 +1,14 @@
 // Copyright 2026 Carlo Cancellieri
 // All rights reserved. Proprietary license.
 
+import { getLang } from '../i18n/index.js';
+
+const LANG_NAMES = {
+  en: 'English',
+  it: 'Italian',
+  es: 'Spanish',
+};
+
 const ACTIVITY_FIELDS = [
   'name', 'category', 'description', 'date', 'time_start', 'time_end',
   'cost', 'address', 'lat', 'lng', 'contact', 'source_url',
@@ -17,7 +25,8 @@ Rules:
 - "cost" is a string like "Free", "€5", "€10-15"
 - "lat" and "lng" are numeric (float)
 - "category" must be one of: music, games, outdoor, culture, food, sport, market, festival, other
-- Do NOT include any text outside the JSON array`;
+- Do NOT include any text outside the JSON array
+- IMPORTANT: Write ALL text fields (name, description, cost) in {LANG}. Only date/time/lat/lng/category stay in their fixed format.`;
 
 function buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, prefs) {
   const lines = [];
@@ -43,9 +52,15 @@ function buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, pr
 /**
  * Build system + user prompts for initial activity discovery.
  */
+function getSystemPrompt() {
+  const lang = LANG_NAMES[getLang()] || 'English';
+  return SYSTEM_PROMPT_BASE.replace('{LANG}', lang);
+}
+
 export function buildPrompt(city, dateStart, dateEnd, centerName, interests, prefs, webSearchContext) {
-  const systemPrompt = SYSTEM_PROMPT_BASE;
+  const systemPrompt = getSystemPrompt();
   let userPrompt = buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, prefs);
+  userPrompt += '\n\nReturn at least 10 activities.';
 
   if (webSearchContext) {
     userPrompt += `\n\nHere is additional context from a web search that may help you find real, current events:\n${webSearchContext}`;
@@ -59,10 +74,10 @@ export function buildPrompt(city, dateStart, dateEnd, centerName, interests, pre
  * Asks for EXACTLY 4 activities and excludes already-found names.
  */
 export function buildPaginatedPrompt(city, dateStart, dateEnd, centerName, interests, prefs, excludeNames, webSearchContext) {
-  const systemPrompt = SYSTEM_PROMPT_BASE;
+  const systemPrompt = getSystemPrompt();
 
   let userPrompt = buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, prefs);
-  userPrompt += '\n\nReturn EXACTLY 4 activities.';
+  userPrompt += '\n\nReturn EXACTLY 8 activities.';
 
   if (excludeNames && excludeNames.length > 0) {
     userPrompt += `\n\nDo NOT include any of these already found:\n${excludeNames.map((n) => `- ${n}`).join('\n')}`;

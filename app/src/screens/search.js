@@ -227,43 +227,61 @@ function renderResults(container, params) {
   });
   btnRow.appendChild(loadMoreBtn);
 
-  const createMapBtn = document.createElement('button');
-  createMapBtn.className = 'btn btn-primary';
-  createMapBtn.textContent = t('createMap') || 'Create Map';
-  createMapBtn.addEventListener('click', async () => {
-    const mapName = await modalPrompt(
-      t('mapName') || 'Map name',
-      t('mapNamePlaceholder') || 'Enter a name for this map',
-      params.city + ' ' + params.dateStart
-    );
-    if (!mapName) return;
-
-    const mapId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const registry = db.readJSON('maps_registry', []);
-    registry.push({
-      id: mapId,
-      name: mapName,
-      city: params.city,
-      dateStart: params.dateStart,
-      dateEnd: params.dateEnd,
-      createdAt: new Date().toISOString(),
+  if (params.mergeMapId) {
+    // Merge into existing map
+    const mergeBtn = document.createElement('button');
+    mergeBtn.className = 'btn btn-primary';
+    mergeBtn.textContent = t('addToMap') || 'Add Events';
+    mergeBtn.addEventListener('click', () => {
+      const existing = db.readJSON('map_data_' + params.mergeMapId);
+      if (!existing) return;
+      const existingNames = new Set((existing.activities || []).map((a) => a.name));
+      const newOnes = allActivities.filter((a) => !existingNames.has(a.name));
+      existing.activities = (existing.activities || []).concat(newOnes);
+      db.writeJSON('map_data_' + params.mergeMapId, existing);
+      showToast(newOnes.length + ' ' + (t('addToMapDone') || 'events added to map'));
+      navigate('map-view', { mapId: params.mergeMapId });
     });
-    db.writeJSON('maps_registry', registry);
+    btnRow.appendChild(mergeBtn);
+  } else {
+    const createMapBtn = document.createElement('button');
+    createMapBtn.className = 'btn btn-primary';
+    createMapBtn.textContent = t('createMap') || 'Create Map';
+    createMapBtn.addEventListener('click', async () => {
+      const mapName = await modalPrompt(
+        t('mapName') || 'Map name',
+        t('mapNamePlaceholder') || 'Enter a name for this map',
+        params.city + ' ' + params.dateStart
+      );
+      if (!mapName) return;
 
-    db.writeJSON('map_data_' + mapId, {
-      title: mapName,
-      city: params.city,
-      centerLat: params.centerLat,
-      centerLng: params.centerLng,
-      dateStart: params.dateStart,
-      dateEnd: params.dateEnd,
-      activities: allActivities,
+      const mapId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const registry = db.readJSON('maps_registry', []);
+      registry.push({
+        id: mapId,
+        title: mapName,
+        city: params.city,
+        dateStart: params.dateStart,
+        dateEnd: params.dateEnd,
+        createdAt: new Date().toISOString(),
+      });
+      db.writeJSON('maps_registry', registry);
+
+      db.writeJSON('map_data_' + mapId, {
+        title: mapName,
+        city: params.city,
+        centerLat: params.centerLat,
+        centerLng: params.centerLng,
+        dateStart: params.dateStart,
+        dateEnd: params.dateEnd,
+        activities: allActivities,
+      });
+
+      showToast(t('mapSaved') || 'Map saved!');
+      navigate('map-view', { mapId });
     });
-
-    showToast(t('mapSaved') || 'Map saved!');
-    navigate('map-view', { mapId });
-  });
-  btnRow.appendChild(createMapBtn);
+    btnRow.appendChild(createMapBtn);
+  }
 
   container.appendChild(btnRow);
 }
@@ -274,6 +292,15 @@ export default {
     allActivities = [];
     const content = el.querySelector('#search-content') || el;
     clearContainer(content);
+
+    // Don't attempt search without required params
+    if (!searchParams.providerId || !searchParams.city) {
+      const empty = document.createElement('p');
+      empty.className = 'text-secondary text-center mt-16';
+      empty.textContent = t('noResults') || 'No results found.';
+      content.appendChild(empty);
+      return;
+    }
 
     const activities = await doSearch(content, searchParams, []);
     allActivities = activities;

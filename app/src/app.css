@@ -59,8 +59,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
 }
 
 .screen.active {
@@ -76,16 +75,26 @@ html, body {
   border-bottom: 1px solid var(--border);
   min-height: 52px;
   flex-shrink: 0;
+  z-index: 10;
 }
 
 .header-back {
-  background: none;
+  background: var(--bg-card, #f0f0f0);
   border: none;
+  border-radius: 50%;
   color: var(--accent);
-  font-size: 16px;
+  font-size: 24px;
+  font-weight: bold;
   cursor: pointer;
-  padding: 4px 8px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 8px;
+  -webkit-tap-highlight-color: rgba(0,0,0,0.1);
 }
 
 .header-title {
@@ -386,7 +395,9 @@ textarea {
 /* Map container */
 .map-container {
   flex: 1;
-  min-height: 300px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* List items */

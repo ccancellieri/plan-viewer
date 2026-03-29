@@ -7,47 +7,57 @@ import { createChipSelect } from '../ui/chip-select.js';
 
 const STEPS = ['mood', 'time', 'budget', 'group', 'distance', 'interests', 'avoid', 'summary'];
 
-const MOOD_OPTIONS = [
-  { value: 'relax', label: 'Relax' },
-  { value: 'adventure', label: 'Adventure' },
-  { value: 'culture', label: 'Culture' },
-  { value: 'nightlife', label: 'Nightlife' },
-  { value: 'family', label: 'Family' },
-  { value: 'romantic', label: 'Romantic' },
-  { value: 'foodie', label: 'Foodie' },
-  { value: 'sport', label: 'Sport' },
-];
+function getMoodOptions() {
+  return [
+    { value: 'relax', label: t('qMoodRelax') || 'Relax' },
+    { value: 'adventure', label: t('qMoodAdventure') || 'Adventure' },
+    { value: 'culture', label: t('qMoodCulture') || 'Culture' },
+    { value: 'nightlife', label: t('qMoodNightlife') || 'Nightlife' },
+    { value: 'family', label: t('qMoodFamily') || 'Family' },
+    { value: 'romantic', label: t('qMoodRomantic') || 'Romantic' },
+    { value: 'foodie', label: t('qMoodFoodie') || 'Foodie' },
+    { value: 'sport', label: t('qMoodSport') || 'Sport' },
+  ];
+}
 
-const TIME_OPTIONS = [
-  { value: 'morning', label: 'Morning' },
-  { value: 'afternoon', label: 'Afternoon' },
-  { value: 'evening', label: 'Evening' },
-  { value: 'night', label: 'Night' },
-  { value: 'all_day', label: 'All Day' },
-];
+function getTimeOptions() {
+  return [
+    { value: 'morning', label: t('qTimeMorning') || 'Morning' },
+    { value: 'afternoon', label: t('qTimeAfternoon') || 'Afternoon' },
+    { value: 'evening', label: t('qTimeEvening') || 'Evening' },
+    { value: 'night', label: t('qTimeNight') || 'Night' },
+    { value: 'all_day', label: t('qTimeAllDay') || 'All Day' },
+  ];
+}
 
-const BUDGET_OPTIONS = [
-  { value: 'free', label: 'Free' },
-  { value: 'cheap', label: 'Cheap' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'any', label: 'Any' },
-];
+function getBudgetOptions() {
+  return [
+    { value: 'free', label: t('qBudgetFree') || 'Free' },
+    { value: 'cheap', label: t('qBudgetCheap') || 'Cheap' },
+    { value: 'medium', label: t('qBudgetMedium') || 'Medium' },
+    { value: 'any', label: t('qBudgetAny') || 'Any' },
+  ];
+}
 
-const GROUP_OPTIONS = [
-  { value: 'solo', label: 'Solo' },
-  { value: 'couple', label: 'Couple' },
-  { value: 'friends', label: 'Friends' },
-  { value: 'family', label: 'Family' },
-  { value: 'large', label: 'Large Group' },
-];
+function getGroupOptions() {
+  return [
+    { value: 'solo', label: t('qGroupSolo') || 'Solo' },
+    { value: 'couple', label: t('qGroupCouple') || 'Couple' },
+    { value: 'friends', label: t('qGroupFriends') || 'Friends' },
+    { value: 'family', label: t('qGroupFamily') || 'Family' },
+    { value: 'large', label: t('qGroupLarge') || 'Large Group' },
+  ];
+}
 
-const DISTANCE_OPTIONS = [
-  { value: '1km', label: '1 km' },
-  { value: '3km', label: '3 km' },
-  { value: '5km', label: '5 km' },
-  { value: '10km', label: '10 km' },
-  { value: '20km', label: '20 km' },
-];
+function getDistanceOptions() {
+  return [
+    { value: '1km', label: t('qDist1') || '1 km' },
+    { value: '3km', label: t('qDist3') || '3 km' },
+    { value: '5km', label: t('qDist5') || '5 km' },
+    { value: '10km', label: t('qDist10') || '10 km' },
+    { value: '20km', label: t('qDist20') || '20+ km' },
+  ];
+}
 
 let profile = {};
 let currentStep = 0;
@@ -91,11 +101,19 @@ function renderStep(container) {
     : null;
   const goNext = () => { currentStep++; renderStep(container); };
 
+  function addDesc(text) {
+    const p = document.createElement('p');
+    p.className = 'text-secondary text-sm mb-8';
+    p.textContent = text;
+    container.appendChild(p);
+  }
+
   switch (step) {
     case 'mood': {
       heading.textContent = t('qMood') || 'What mood?';
       container.appendChild(heading);
-      const chips = createChipSelect(MOOD_OPTIONS, profile.mood || [], (val) => { profile.mood = val; });
+      addDesc(t('qMoodMsg') || 'What kind of experience are you looking for?');
+      const chips = createChipSelect(getMoodOptions(), profile.mood || [], (val) => { profile.mood = val; });
       container.appendChild(chips);
       createNavButtons(container, goBack, goNext);
       break;
@@ -103,7 +121,8 @@ function renderStep(container) {
     case 'time': {
       heading.textContent = t('qTime') || 'Preferred times?';
       container.appendChild(heading);
-      const chips = createChipSelect(TIME_OPTIONS, profile.time || [], (val) => { profile.time = val; });
+      addDesc(t('qTimeMsg') || 'When do you want activities?');
+      const chips = createChipSelect(getTimeOptions(), profile.time || [], (val) => { profile.time = val; });
       container.appendChild(chips);
       createNavButtons(container, goBack, goNext);
       break;
@@ -111,7 +130,8 @@ function renderStep(container) {
     case 'budget': {
       heading.textContent = t('qBudget') || 'Budget?';
       container.appendChild(heading);
-      const chips = createChipSelect(BUDGET_OPTIONS, profile.budget ? [profile.budget] : [], (val) => { profile.budget = val[val.length - 1] || null; });
+      addDesc(t('qBudgetMsg') || 'How much do you want to spend?');
+      const chips = createChipSelect(getBudgetOptions(), profile.budget ? [profile.budget] : [], (val) => { profile.budget = val[val.length - 1] || null; });
       container.appendChild(chips);
       createNavButtons(container, goBack, goNext);
       break;
@@ -119,7 +139,8 @@ function renderStep(container) {
     case 'group': {
       heading.textContent = t('qGroup') || 'Group type?';
       container.appendChild(heading);
-      const chips = createChipSelect(GROUP_OPTIONS, profile.group ? [profile.group] : [], (val) => { profile.group = val[val.length - 1] || null; });
+      addDesc(t('qGroupMsg') || 'Who are you going with?');
+      const chips = createChipSelect(getGroupOptions(), profile.group ? [profile.group] : [], (val) => { profile.group = val[val.length - 1] || null; });
       container.appendChild(chips);
       createNavButtons(container, goBack, goNext);
       break;
@@ -127,7 +148,8 @@ function renderStep(container) {
     case 'distance': {
       heading.textContent = t('qDistance') || 'Max distance?';
       container.appendChild(heading);
-      const chips = createChipSelect(DISTANCE_OPTIONS, profile.distance ? [profile.distance] : [], (val) => { profile.distance = val[val.length - 1] || null; });
+      addDesc(t('qDistanceMsg') || 'How far do you want to go?');
+      const chips = createChipSelect(getDistanceOptions(), profile.distance ? [profile.distance] : [], (val) => { profile.distance = val[val.length - 1] || null; });
       container.appendChild(chips);
       createNavButtons(container, goBack, goNext);
       break;
@@ -135,6 +157,7 @@ function renderStep(container) {
     case 'interests': {
       heading.textContent = t('qSpecific') || 'Specific interests?';
       container.appendChild(heading);
+      addDesc(t('qSpecificMsg') || 'Anything specific you want to find?');
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'input';
@@ -148,6 +171,7 @@ function renderStep(container) {
     case 'avoid': {
       heading.textContent = t('qAvoid') || 'Anything to avoid?';
       container.appendChild(heading);
+      addDesc(t('qAvoidMsg') || 'Anything you want to avoid?');
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'input';
@@ -170,12 +194,27 @@ function renderSummary(container) {
   heading.textContent = t('qSummary') || 'Summary';
   container.appendChild(heading);
 
+  function translateValues(values, optionsFn) {
+    if (!values || !values.length) return '';
+    const opts = optionsFn();
+    return values.map((v) => {
+      const opt = opts.find((o) => o.value === v);
+      return opt ? opt.label : v;
+    }).join(', ');
+  }
+
+  function translateValue(value, optionsFn) {
+    if (!value) return '';
+    const opt = optionsFn().find((o) => o.value === value);
+    return opt ? opt.label : value;
+  }
+
   const fields = [
-    { key: 'mood', label: t('qMood') || 'Mood', value: (profile.mood || []).join(', ') },
-    { key: 'time', label: t('qTime') || 'Time', value: (profile.time || []).join(', ') },
-    { key: 'budget', label: t('qBudget') || 'Budget', value: profile.budget || '' },
-    { key: 'group', label: t('qGroup') || 'Group', value: profile.group || '' },
-    { key: 'distance', label: t('qDistance') || 'Distance', value: profile.distance || '' },
+    { key: 'mood', label: t('qMood') || 'Mood', value: translateValues(profile.mood, getMoodOptions) },
+    { key: 'time', label: t('qTime') || 'Time', value: translateValues(profile.time, getTimeOptions) },
+    { key: 'budget', label: t('qBudget') || 'Budget', value: translateValue(profile.budget, getBudgetOptions) },
+    { key: 'group', label: t('qGroup') || 'Group', value: translateValue(profile.group, getGroupOptions) },
+    { key: 'distance', label: t('qDistance') || 'Distance', value: translateValue(profile.distance, getDistanceOptions) },
     { key: 'interests', label: t('qSpecific') || 'Interests', value: profile.interests || '' },
     { key: 'avoid', label: t('qAvoid') || 'Avoid', value: profile.avoid || '' },
   ];

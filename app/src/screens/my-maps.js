@@ -17,7 +17,7 @@ function createMapCard(map, container, el) {
 
   const title = document.createElement('h4');
   title.className = 'map-card-title';
-  title.textContent = map.title || t('untitled') || 'Untitled';
+  title.textContent = map.title || map.name || t('untitled') || 'Untitled';
   card.appendChild(title);
 
   const city = document.createElement('p');
@@ -32,10 +32,11 @@ function createMapCard(map, container, el) {
     card.appendChild(dates);
   }
 
+  const mapData = db.readJSON('map_data_' + map.id, null);
+  const actCount = mapData && mapData.activities ? mapData.activities.length : 0;
   const activities = document.createElement('p');
   activities.className = 'text-secondary text-sm';
-  activities.textContent =
-    (t('activities') || 'Activities') + ': ' + (map.activitiesCount || 0);
+  activities.textContent = (t('activities') || 'Activities') + ': ' + actCount;
   card.appendChild(activities);
 
   // Click to view map
@@ -55,14 +56,14 @@ function createMapCard(map, container, el) {
       t('exportKml') || 'Export KML',
       t('delete') || 'Delete',
     ];
-    const idx = await actionSheet(map.title || t('untitled') || 'Untitled', options);
+    const idx = await actionSheet(map.title || map.name || t('untitled') || 'Untitled', options);
     if (idx === 0) {
       navigate('map-view', { mapId: map.id });
     } else if (idx === 1) {
       const newName = await prompt(
         t('rename') || 'Rename',
         t('enterNewName') || 'Enter new name',
-        map.title || ''
+        map.title || map.name || ''
       );
       if (newName !== null && newName.trim() !== '') {
         const registry = db.readJSON('maps_registry', []);
@@ -79,7 +80,7 @@ function createMapCard(map, container, el) {
         const { exportKml } = await import('../lib/export.js');
         const mapData = db.readJSON(`map_data_${map.id}`, null);
         if (mapData) {
-          exportKml(mapData, map.title || 'map');
+          exportKml(mapData, map.title || map.name || 'map');
         }
       } catch {
         // export module may not support KML yet
@@ -87,7 +88,7 @@ function createMapCard(map, container, el) {
     } else if (idx === 3) {
       const yes = await confirm(
         t('delete') || 'Delete',
-        (t('confirmDelete') || 'Delete') + ' "' + (map.title || '') + '"?'
+        (t('confirmDelete') || 'Delete') + ' "' + (map.title || map.name || '') + '"?'
       );
       if (yes) {
         let registry = db.readJSON('maps_registry', []);

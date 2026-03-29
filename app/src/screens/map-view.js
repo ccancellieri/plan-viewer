@@ -5,11 +5,13 @@ import { t } from '../i18n/index.js';
 import { db } from '../storage/index.js';
 import { getCategoryColor, getCategoryIcon, CATEGORIES } from '../lib/categories.js';
 import { haversine } from '../lib/geo.js';
-import { prompt as modalPrompt } from '../ui/modal.js';
+import { actionSheet, prompt as modalPrompt } from '../ui/modal.js';
 import { showToast } from '../ui/toast.js';
 import { renderCards } from '../map/cards.js';
 import { nativeShare } from '../lib/native.js';
 import { renderTimeline } from '../map/timeline.js';
+import { navigate } from '../router.js';
+import { providers } from '../providers/index.js';
 
 async function loadLeaflet() {
   if (window.L) return window.L;
@@ -285,6 +287,39 @@ export default {
       if (shared === false) showToast('Copied to clipboard');
     });
     shareBar.appendChild(shareBtn);
+
+    // Add Events button — enrich map with more activities from another AI
+    const addEventsBtn = document.createElement('button');
+    addEventsBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;border:none;cursor:pointer;color:white;background:#f59e0b';
+    addEventsBtn.textContent = '+ ' + (t('addToMap') || 'Add Events');
+    addEventsBtn.addEventListener('click', async () => {
+      // Show only providers with a configured key
+      const available = providers.filter((p) => {
+        if (p.id === 'manual') return true;
+        return !!db.readJSON('apikey_' + p.id);
+      });
+      if (available.length === 0) {
+        showToast(t('apiKeyNeeded') || 'Configure an API key in Settings first');
+        return;
+      }
+      const labels = available.map((p) => p.label);
+      const idx = await actionSheet(t('provider') || 'Select AI provider', labels);
+      if (idx < 0) return;
+
+      const provider = available[idx];
+      navigate('questionnaire', {
+        city: mapData.city,
+        centerLat: mapData.centerLat,
+        centerLng: mapData.centerLng,
+        centerName: mapData.centerName || '',
+        dateStart: mapData.dateStart,
+        dateEnd: mapData.dateEnd,
+        providerId: provider.id,
+        mergeMapId: params.mapId,
+      });
+    });
+    shareBar.appendChild(addEventsBtn);
+
     mapContainer.appendChild(shareBar);
 
     // --- Filter chips ---

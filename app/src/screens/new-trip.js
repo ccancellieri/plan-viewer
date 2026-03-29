@@ -140,14 +140,25 @@ function renderDatesStep(container) {
 async function renderProviderStep(container) {
   clearContainer(container);
 
-  const labels = providers.map((p) => p.label);
+  // Show only providers that have an API key configured (plus manual)
+  const available = providers.filter((p) => {
+    if (p.id === 'manual') return true;
+    return !!db.readJSON('apikey_' + p.id);
+  });
+
+  if (available.length === 0) {
+    // Fallback: show all providers so the user can configure a key
+    available.push(...providers);
+  }
+
+  const labels = available.map((p) => p.label);
   const idx = await actionSheet(t('provider') || 'Select AI provider', labels);
   if (idx < 0) {
     renderDatesStep(container);
     return;
   }
 
-  const provider = providers[idx];
+  const provider = available[idx];
   const providerId = provider.id;
 
   if (provider.signupUrl) {
