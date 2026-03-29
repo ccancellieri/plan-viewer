@@ -109,7 +109,8 @@ async function doSearch(container, params, excludeNames) {
       interests,
       prefs,
       excludeNames || [],
-      null
+      null,
+      params.mergeMapId || null
     );
 
     // Manual mode: copy prompt to clipboard, let user paste AI response

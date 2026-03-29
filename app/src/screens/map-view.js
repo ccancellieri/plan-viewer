@@ -12,6 +12,7 @@ import { nativeShare } from '../lib/native.js';
 import { renderTimeline } from '../map/timeline.js';
 import { navigate } from '../router.js';
 import { providers } from '../providers/index.js';
+import { getMapLocalSources, setMapLocalSources } from '../lib/sources.js';
 
 async function loadLeaflet() {
   if (window.L) return window.L;
@@ -343,6 +344,43 @@ export default {
       });
     });
     shareBar.appendChild(addEventsBtn);
+
+    // Local Sources button — manage location-specific websites
+    const srcBtn = document.createElement('button');
+    srcBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;border:none;cursor:pointer;color:white;background:#8b5cf6';
+    const localCount = getMapLocalSources(params.mapId).length;
+    srcBtn.textContent = '🔗 ' + (t('localSources') || 'Sources') + (localCount > 0 ? ' (' + localCount + ')' : '');
+    srcBtn.addEventListener('click', async () => {
+      const sources = getMapLocalSources(params.mapId);
+      const options = sources.map((s) => '✕ ' + s);
+      options.push('+ ' + (t('addSource') || 'Add local website'));
+      const idx = await actionSheet(
+        (t('localSources') || 'Local Sources') + ' — ' + (mapData.city || ''),
+        options
+      );
+      if (idx < 0) return;
+      if (idx < sources.length) {
+        // Remove source
+        sources.splice(idx, 1);
+        setMapLocalSources(params.mapId, sources);
+        srcBtn.textContent = '🔗 ' + (t('localSources') || 'Sources') + (sources.length > 0 ? ' (' + sources.length + ')' : '');
+        showToast(t('sourceRemoved') || 'Source removed');
+      } else {
+        // Add source
+        const url = await modalPrompt(
+          t('addSource') || 'Add local website',
+          (t('addSourceMsg') || 'Enter a website for') + ' ' + (mapData.city || 'this location') + ' (e.g. romatoday.it)',
+          ''
+        );
+        if (url && url.trim()) {
+          sources.push(url.trim());
+          setMapLocalSources(params.mapId, sources);
+          srcBtn.textContent = '🔗 ' + (t('localSources') || 'Sources') + ' (' + sources.length + ')';
+          showToast(url.trim() + ' ' + (t('sourceAdded') || 'added'));
+        }
+      }
+    });
+    shareBar.appendChild(srcBtn);
 
     mapContainer.appendChild(shareBar);
 

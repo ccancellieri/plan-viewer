@@ -2,6 +2,7 @@
 // All rights reserved. Proprietary license.
 
 import { getLang } from '../i18n/index.js';
+import { buildSourcesPrompt } from './sources.js';
 
 const LANG_NAMES = {
   en: 'English',
@@ -62,9 +63,15 @@ function getSystemPrompt() {
  * First call (no excludeNames): asks for 20 activities.
  * Follow-up calls: asks for 10 more, excluding already-found names.
  */
-export function buildPaginatedPrompt(city, dateStart, dateEnd, centerName, interests, prefs, excludeNames, webSearchContext) {
+export function buildPaginatedPrompt(city, dateStart, dateEnd, centerName, interests, prefs, excludeNames, webSearchContext, mapId) {
   const systemPrompt = getSystemPrompt();
   let userPrompt = buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, prefs);
+
+  // Inject data sources (global + map-local)
+  const sourcesBlock = buildSourcesPrompt(mapId);
+  if (sourcesBlock) {
+    userPrompt += '\n\n' + sourcesBlock;
+  }
 
   if (excludeNames && excludeNames.length > 0) {
     userPrompt += '\n\nReturn EXACTLY 10 new activities.';

@@ -5,6 +5,7 @@ import { t, getLang, loadLocale, getAvailableLocales } from '../i18n/index.js';
 import { db } from '../storage/index.js';
 import { providers } from '../providers/index.js';
 import { prompt, actionSheet } from '../ui/modal.js';
+import { KNOWN_SOURCES, getEnabledSources, setEnabledSources, getCustomSources, setCustomSources } from '../lib/sources.js';
 
 function createSection(title) {
   const section = document.createElement('div');
@@ -145,6 +146,127 @@ const screenObj = {
     createSearchKeyCard('tavily', 'Tavily', searchSection, el);
     createSearchKeyCard('serper', 'Serper', searchSection, el);
     content.appendChild(searchSection);
+
+    // --- Data Sources (global) ---
+    const srcSection = createSection(t('dataSources') || 'Data Sources');
+    const srcDesc = document.createElement('p');
+    srcDesc.className = 'text-secondary text-sm mt-4';
+    srcDesc.textContent = t('dataSourcesDesc') || 'Enable platforms the AI should reference when searching for activities. These are included in the prompt to improve results.';
+    srcSection.appendChild(srcDesc);
+
+    // Group sources by category
+    const enabled = getEnabledSources();
+    const groups = {};
+    KNOWN_SOURCES.forEach((src) => {
+      const g = src.group || 'global';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(src);
+    });
+
+    const groupLabels = {
+      global: '🌍 ' + (t('globalSources') || 'Global Platforms'),
+      IT: '🇮🇹 Italia', ES: '🇪🇸 España', FR: '🇫🇷 France', DE: '🇩🇪 Deutschland',
+      GB: '🇬🇧 United Kingdom', US: '🇺🇸 United States', JP: '🇯🇵 Japan',
+      PT: '🇵🇹 Portugal', NL: '🇳🇱 Netherlands', GR: '🇬🇷 Greece',
+    };
+
+    function renderSourceRow(src) {
+      const row = document.createElement('label');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0;padding-left:4px;cursor:pointer';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = enabled.includes(src.id);
+      cb.style.cssText = 'width:18px;height:18px;flex-shrink:0';
+      cb.addEventListener('change', () => {
+        const current = getEnabledSources();
+        if (cb.checked) {
+          if (!current.includes(src.id)) current.push(src.id);
+        } else {
+          const idx = current.indexOf(src.id);
+          if (idx >= 0) current.splice(idx, 1);
+        }
+        setEnabledSources(current);
+      });
+      row.appendChild(cb);
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'font-size:13px';
+      lbl.textContent = src.label.replace(/^🇮🇹 |^🇪🇸 |^🇫🇷 |^🇩🇪 |^🇬🇧 |^🇺🇸 |^🇯🇵 |^🇵🇹 |^🇳🇱 |^🇬🇷 /g, '');
+      row.appendChild(lbl);
+      return row;
+    }
+
+    Object.keys(groups).forEach((groupKey) => {
+      const groupHeader = document.createElement('div');
+      groupHeader.style.cssText = 'font-size:13px;font-weight:600;margin-top:12px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text)';
+      groupHeader.textContent = groupLabels[groupKey] || groupKey;
+      srcSection.appendChild(groupHeader);
+      groups[groupKey].forEach((src) => {
+        srcSection.appendChild(renderSourceRow(src));
+      });
+    });
+
+    // Custom global URLs
+    const customLabel = document.createElement('p');
+    customLabel.className = 'text-secondary text-sm mt-12';
+    customLabel.style.fontWeight = '600';
+    customLabel.textContent = t('customSources') || 'Custom websites (global)';
+    srcSection.appendChild(customLabel);
+
+    const customList = document.createElement('div');
+    const customUrls = getCustomSources();
+
+    function renderCustomList() {
+      customList.textContent = '';
+      const urls = getCustomSources();
+      urls.forEach((url, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)';
+        const urlText = document.createElement('span');
+        urlText.style.cssText = 'flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        urlText.textContent = url;
+        row.appendChild(urlText);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-small btn-secondary';
+        delBtn.style.cssText = 'color:#e74c3c;padding:2px 8px;font-size:12px';
+        delBtn.textContent = '✕';
+        delBtn.addEventListener('click', () => {
+          const current = getCustomSources();
+          current.splice(i, 1);
+          setCustomSources(current);
+          renderCustomList();
+        });
+        row.appendChild(delBtn);
+        customList.appendChild(row);
+      });
+      if (urls.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-secondary text-sm';
+        empty.textContent = t('noCustomSources') || 'No custom sources added';
+        customList.appendChild(empty);
+      }
+    }
+    renderCustomList();
+    srcSection.appendChild(customList);
+
+    const addCustomBtn = document.createElement('button');
+    addCustomBtn.className = 'btn btn-secondary btn-block mt-8';
+    addCustomBtn.textContent = '+ ' + (t('addSource') || 'Add website');
+    addCustomBtn.addEventListener('click', async () => {
+      const url = await prompt(
+        t('addSource') || 'Add website',
+        t('addSourceMsg') || 'Enter a website URL or name (e.g. romatoday.it)',
+        ''
+      );
+      if (url && url.trim()) {
+        const current = getCustomSources();
+        current.push(url.trim());
+        setCustomSources(current);
+        renderCustomList();
+      }
+    });
+    srcSection.appendChild(addCustomBtn);
+
+    content.appendChild(srcSection);
 
     // --- Storage info ---
     const storageSection = createSection(t('storage') || 'Storage');
