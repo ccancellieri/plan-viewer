@@ -4,6 +4,8 @@
 import { t, getLang } from '../i18n/index.js';
 import { navigate } from '../router.js';
 
+const APP_VERSION = '1.4.0';
+
 const MENU_ITEMS = [
   { icon: '🗺️', key: 'newTrip',   screen: 'new-trip'   },
   { icon: '🎙️', key: 'voicePlan', screen: 'voice-plan' },
@@ -86,6 +88,13 @@ export default {
       menu.appendChild(btn);
     });
     content.appendChild(menu);
+
+    // Version
+    const ver = document.createElement('p');
+    ver.className = 'text-secondary text-sm text-center mt-16';
+    ver.textContent = 'v' + APP_VERSION;
+    ver.style.opacity = '0.5';
+    content.appendChild(ver);
 
     // Install hint (only shown in browser, not when installed)
     if (!isStandalone()) {
