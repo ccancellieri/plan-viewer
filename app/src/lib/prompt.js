@@ -86,3 +86,48 @@ export function buildPaginatedPrompt(city, dateStart, dateEnd, centerName, inter
 
   return { systemPrompt, userPrompt };
 }
+
+/**
+ * Build system + user prompts for corridor (route-based) activity search.
+ * Searches for activities near a specific area along a route.
+ */
+export function buildCorridorPrompt(areaName, lat, lng, radiusKm, dateStart, dateEnd, excludeNames) {
+  const systemPrompt = getSystemPrompt();
+
+  const lines = [];
+  lines.push(`Find fun leisure activities in and around ${areaName} (${lat.toFixed(4)}, ${lng.toFixed(4)}).`);
+  lines.push(`Search within approximately ${Math.round(radiusKm)} km of this point.`);
+  lines.push(`This is part of a road trip route — include things to do, visit, or eat along the way.`);
+  lines.push(`Include natural attractions, restaurants, viewpoints, hot springs, local markets, festivals, wineries, and hidden gems.`);
+
+  if (dateStart && dateEnd) {
+    lines.push(`Date range: ${dateStart} to ${dateEnd}.`);
+  }
+
+  lines.push('Return at least 10 activities. The more the better.');
+
+  if (excludeNames && excludeNames.length > 0) {
+    lines.push(`\nDo NOT include any of these already found:\n${excludeNames.map(n => `- ${n}`).join('\n')}`);
+  }
+
+  return { systemPrompt, userPrompt: lines.join('\n') };
+}
+
+/**
+ * Build prompt for a focus zone (drill-down search at a specific point).
+ */
+export function buildFocusZonePrompt(areaName, lat, lng, radiusKm, keyword, dateStart, dateEnd) {
+  const systemPrompt = getSystemPrompt();
+
+  const lines = [];
+  lines.push(`Find activities related to "${keyword}" near ${areaName} (${lat.toFixed(4)}, ${lng.toFixed(4)}).`);
+  lines.push(`Search within approximately ${Math.round(radiusKm)} km.`);
+
+  if (dateStart && dateEnd) {
+    lines.push(`Date range: ${dateStart} to ${dateEnd}.`);
+  }
+
+  lines.push('Return at least 10 activities. The more the better.');
+
+  return { systemPrompt, userPrompt: lines.join('\n') };
+}

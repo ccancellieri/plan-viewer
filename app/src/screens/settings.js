@@ -5,7 +5,8 @@ import { t, getLang, loadLocale, getAvailableLocales } from '../i18n/index.js';
 import { db } from '../storage/index.js';
 import { providers } from '../providers/index.js';
 import { prompt, actionSheet } from '../ui/modal.js';
-import { KNOWN_SOURCES, getEnabledSources, setEnabledSources, getCustomSources, setCustomSources } from '../lib/sources.js';
+import { KNOWN_SOURCES, getEnabledSources, setEnabledSources, getCustomSources, setCustomSources, getSourcesUrl, setSourcesUrl, reloadSources } from '../lib/sources.js';
+import { getQuestionnaireUrl, setQuestionnaireUrl, reloadQuestionnaire } from '../lib/questionnaire-loader.js';
 
 function createSection(title) {
   const section = document.createElement('div');
@@ -153,6 +154,98 @@ const screenObj = {
     srcDesc.className = 'text-secondary text-sm mt-4';
     srcDesc.textContent = t('dataSourcesDesc') || 'Enable platforms the AI should reference when searching for activities. These are included in the prompt to improve results.';
     srcSection.appendChild(srcDesc);
+
+    // Sources file URL configuration
+    const urlCard = document.createElement('div');
+    urlCard.className = 'card mb-8 mt-8';
+    const urlLabel = document.createElement('span');
+    urlLabel.className = 'font-bold text-sm';
+    urlLabel.textContent = 'Sources catalog URL';
+    urlCard.appendChild(urlLabel);
+    const urlHint = document.createElement('p');
+    urlHint.className = 'text-secondary text-sm mt-4';
+    urlHint.textContent = 'Point to a custom JSON file with your own sources. Leave empty for the default bundled catalog.';
+    urlCard.appendChild(urlHint);
+    const currentUrl = getSourcesUrl();
+    const urlStatus = document.createElement('p');
+    urlStatus.className = 'text-secondary text-sm mt-4';
+    urlStatus.style.fontStyle = 'italic';
+    urlStatus.textContent = currentUrl === 'sources.json' ? 'Using default catalog' : currentUrl;
+    urlCard.appendChild(urlStatus);
+    const urlBtnRow = document.createElement('div');
+    urlBtnRow.style.cssText = 'display:flex;gap:8px;margin-top:8px';
+    const setUrlBtn = document.createElement('button');
+    setUrlBtn.className = 'btn btn-secondary';
+    setUrlBtn.style.flex = '1';
+    setUrlBtn.textContent = 'Set URL';
+    setUrlBtn.addEventListener('click', async () => {
+      const val = await prompt('Sources catalog URL', 'https://example.com/sources.json', currentUrl === 'sources.json' ? '' : currentUrl);
+      if (val !== null) {
+        setSourcesUrl(val.trim());
+        await reloadSources();
+        screenObj.mount(el);
+      }
+    });
+    urlBtnRow.appendChild(setUrlBtn);
+    if (currentUrl !== 'sources.json') {
+      const resetUrlBtn = document.createElement('button');
+      resetUrlBtn.className = 'btn btn-secondary';
+      resetUrlBtn.textContent = 'Reset';
+      resetUrlBtn.addEventListener('click', async () => {
+        setSourcesUrl('');
+        await reloadSources();
+        screenObj.mount(el);
+      });
+      urlBtnRow.appendChild(resetUrlBtn);
+    }
+    urlCard.appendChild(urlBtnRow);
+    srcSection.appendChild(urlCard);
+
+    // Questionnaire file URL configuration
+    const qCard = document.createElement('div');
+    qCard.className = 'card mb-8 mt-8';
+    const qLabel = document.createElement('span');
+    qLabel.className = 'font-bold text-sm';
+    qLabel.textContent = t('questionnaireSrc') || 'Questionnaire Source';
+    qCard.appendChild(qLabel);
+    const qHint = document.createElement('p');
+    qHint.className = 'text-secondary text-sm mt-4';
+    qHint.textContent = t('questionnaireSrcMsg') || 'URL for questionnaire.json (leave empty for default)';
+    qCard.appendChild(qHint);
+    const currentQUrl = getQuestionnaireUrl();
+    const qStatus = document.createElement('p');
+    qStatus.className = 'text-secondary text-sm mt-4';
+    qStatus.style.fontStyle = 'italic';
+    qStatus.textContent = currentQUrl === 'questionnaire.json' ? 'Using default' : currentQUrl;
+    qCard.appendChild(qStatus);
+    const qBtnRow = document.createElement('div');
+    qBtnRow.style.cssText = 'display:flex;gap:8px;margin-top:8px';
+    const setQBtn = document.createElement('button');
+    setQBtn.className = 'btn btn-secondary';
+    setQBtn.style.flex = '1';
+    setQBtn.textContent = 'Set URL';
+    setQBtn.addEventListener('click', async () => {
+      const val = await prompt(t('questionnaireSrc') || 'Questionnaire URL', 'https://example.com/questionnaire.json', currentQUrl === 'questionnaire.json' ? '' : currentQUrl);
+      if (val !== null) {
+        setQuestionnaireUrl(val.trim());
+        await reloadQuestionnaire();
+        screenObj.mount(el);
+      }
+    });
+    qBtnRow.appendChild(setQBtn);
+    if (currentQUrl !== 'questionnaire.json') {
+      const resetQBtn = document.createElement('button');
+      resetQBtn.className = 'btn btn-secondary';
+      resetQBtn.textContent = 'Reset';
+      resetQBtn.addEventListener('click', async () => {
+        setQuestionnaireUrl('');
+        await reloadQuestionnaire();
+        screenObj.mount(el);
+      });
+      qBtnRow.appendChild(resetQBtn);
+    }
+    qCard.appendChild(qBtnRow);
+    srcSection.appendChild(qCard);
 
     // Group sources by category
     const enabled = getEnabledSources();

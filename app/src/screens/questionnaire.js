@@ -5,58 +5,7 @@ import { t } from '../i18n/index.js';
 import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { createChipSelect } from '../ui/chip-select.js';
-
-function getMoodOptions() {
-  return [
-    { value: 'relax', label: t('qMoodRelax') || 'Relax' },
-    { value: 'adventure', label: t('qMoodAdventure') || 'Adventure' },
-    { value: 'culture', label: t('qMoodCulture') || 'Culture' },
-    { value: 'nightlife', label: t('qMoodNightlife') || 'Nightlife' },
-    { value: 'family', label: t('qMoodFamily') || 'Family' },
-    { value: 'romantic', label: t('qMoodRomantic') || 'Romantic' },
-    { value: 'foodie', label: t('qMoodFoodie') || 'Foodie' },
-    { value: 'sport', label: t('qMoodSport') || 'Sport' },
-  ];
-}
-
-function getTimeOptions() {
-  return [
-    { value: 'morning', label: t('qTimeMorning') || 'Morning' },
-    { value: 'afternoon', label: t('qTimeAfternoon') || 'Afternoon' },
-    { value: 'evening', label: t('qTimeEvening') || 'Evening' },
-    { value: 'night', label: t('qTimeNight') || 'Night' },
-    { value: 'all_day', label: t('qTimeAllDay') || 'All Day' },
-  ];
-}
-
-function getBudgetOptions() {
-  return [
-    { value: 'free', label: t('qBudgetFree') || 'Free' },
-    { value: 'cheap', label: t('qBudgetCheap') || 'Cheap' },
-    { value: 'medium', label: t('qBudgetMedium') || 'Medium' },
-    { value: 'any', label: t('qBudgetAny') || 'Any' },
-  ];
-}
-
-function getGroupOptions() {
-  return [
-    { value: 'solo', label: t('qGroupSolo') || 'Solo' },
-    { value: 'couple', label: t('qGroupCouple') || 'Couple' },
-    { value: 'friends', label: t('qGroupFriends') || 'Friends' },
-    { value: 'family', label: t('qGroupFamily') || 'Family' },
-    { value: 'large', label: t('qGroupLarge') || 'Large Group' },
-  ];
-}
-
-function getDistanceOptions() {
-  return [
-    { value: '1km', label: t('qDist1') || '1 km' },
-    { value: '3km', label: t('qDist3') || '3 km' },
-    { value: '5km', label: t('qDist5') || '5 km' },
-    { value: '10km', label: t('qDist10') || '10 km' },
-    { value: '20km', label: t('qDist20') || '20+ km' },
-  ];
-}
+import { getQuestionnaire } from '../lib/questionnaire-loader.js';
 
 let profile = {};
 let tripParams = {};
@@ -67,25 +16,34 @@ function clearContainer(container) {
   }
 }
 
-function translateValues(values, optionsFn) {
+/** Resolve options from a section definition, applying i18n via t(). */
+function resolveOptions(section) {
+  if (!section.options) return [];
+  return section.options.map(opt => ({
+    value: opt.value,
+    label: t(opt.labelKey) || opt.label || opt.value,
+  }));
+}
+
+function translateValues(values, section) {
   if (!values || !values.length) return '';
-  const opts = optionsFn();
-  return values.map((v) => {
-    const opt = opts.find((o) => o.value === v);
+  const opts = resolveOptions(section);
+  return values.map(v => {
+    const opt = opts.find(o => o.value === v);
     return opt ? opt.label : v;
   }).join(', ');
 }
 
-function translateValue(value, optionsFn) {
+function translateValue(value, section) {
   if (!value) return '';
-  const opt = optionsFn().find((o) => o.value === value);
+  const opts = resolveOptions(section);
+  const opt = opts.find(o => o.value === value);
   return opt ? opt.label : value;
 }
 
 // Inline editor for chip-select fields (multi or single)
-function renderChipEditor(row, detailEl, field, optionsFn, multi) {
+function renderChipEditor(detailEl, field, section) {
   if (detailEl._open) {
-    // Close editor
     detailEl.textContent = field.displayValue() || '-';
     detailEl._open = false;
     return;
@@ -93,11 +51,12 @@ function renderChipEditor(row, detailEl, field, optionsFn, multi) {
   detailEl._open = true;
   detailEl.textContent = '';
 
+  const multi = section.multi;
   const selected = multi
     ? (profile[field.key] || [])
     : (profile[field.key] ? [profile[field.key]] : []);
 
-  const chips = createChipSelect(optionsFn(), selected, (val) => {
+  const chips = createChipSelect(resolveOptions(section), selected, (val) => {
     if (multi) {
       profile[field.key] = val;
     } else {
@@ -108,7 +67,7 @@ function renderChipEditor(row, detailEl, field, optionsFn, multi) {
 }
 
 // Inline editor for text input fields
-function renderTextEditor(row, detailEl, field) {
+function renderTextEditor(detailEl, field) {
   if (detailEl._open) {
     detailEl.textContent = field.displayValue() || '-';
     detailEl._open = false;
@@ -125,7 +84,6 @@ function renderTextEditor(row, detailEl, field) {
   input.value = profile[field.key] || '';
   input.addEventListener('input', () => { profile[field.key] = input.value; });
   input.addEventListener('blur', () => {
-    // Update display after editing
     setTimeout(() => {
       if (detailEl._open) {
         detailEl._open = false;
@@ -156,6 +114,8 @@ function doSearch(loadAll) {
 function renderReview(container) {
   clearContainer(container);
 
+  const q = getQuestionnaire();
+
   // Compact header with trip info
   const header = document.createElement('div');
   header.style.cssText = 'margin-bottom:12px';
@@ -175,16 +135,30 @@ function renderReview(container) {
   }
   container.appendChild(header);
 
-  // Field definitions
-  const fields = [
-    { key: 'mood', label: t('qMood') || 'Mood', type: 'chips', multi: true, optionsFn: getMoodOptions, displayValue: () => translateValues(profile.mood, getMoodOptions) },
-    { key: 'time', label: t('qTime') || 'Time', type: 'chips', multi: true, optionsFn: getTimeOptions, displayValue: () => translateValues(profile.time, getTimeOptions) },
-    { key: 'budget', label: t('qBudget') || 'Budget', type: 'chips', multi: false, optionsFn: getBudgetOptions, displayValue: () => translateValue(profile.budget, getBudgetOptions) },
-    { key: 'group', label: t('qGroup') || 'Group', type: 'chips', multi: false, optionsFn: getGroupOptions, displayValue: () => translateValue(profile.group, getGroupOptions) },
-    { key: 'distance', label: t('qDistance') || 'Distance', type: 'chips', multi: false, optionsFn: getDistanceOptions, displayValue: () => translateValue(profile.distance, getDistanceOptions) },
-    { key: 'interests', label: t('qSpecific') || 'Interests', type: 'text', placeholder: t('qSpecificPlaceholder') || 'e.g. live music, seafood...', displayValue: () => profile.interests || '' },
-    { key: 'avoid', label: t('qAvoid') || 'Avoid', type: 'text', placeholder: t('qAvoidPlaceholder') || 'e.g. crowded places...', displayValue: () => profile.avoid || '' },
-  ];
+  // Build field definitions dynamically from questionnaire JSON
+  const fields = q.sections.map(section => {
+    if (section.type === 'chips') {
+      return {
+        key: section.key,
+        label: t(section.labelKey) || section.key,
+        type: 'chips',
+        multi: !!section.multi,
+        section,
+        displayValue: () => section.multi
+          ? translateValues(profile[section.key], section)
+          : translateValue(profile[section.key], section),
+      };
+    }
+    // text
+    return {
+      key: section.key,
+      label: t(section.labelKey) || section.key,
+      type: 'text',
+      placeholder: t(section.placeholderKey) || section.placeholder || '',
+      section,
+      displayValue: () => profile[section.key] || '',
+    };
+  });
 
   // Render each field as a compact expandable row
   fields.forEach((field) => {
@@ -211,7 +185,6 @@ function renderReview(container) {
 
     row.appendChild(headerRow);
 
-    // Detail area (hidden by default, shown when tapped)
     const detailEl = document.createElement('div');
     detailEl.style.cssText = 'margin-top:4px';
     detailEl._open = false;
@@ -219,12 +192,11 @@ function renderReview(container) {
 
     headerRow.addEventListener('click', () => {
       if (field.type === 'chips') {
-        renderChipEditor(row, detailEl, field, field.optionsFn, field.multi);
+        renderChipEditor(detailEl, field, field.section);
       } else {
-        renderTextEditor(row, detailEl, field);
+        renderTextEditor(detailEl, field);
       }
       arrow.textContent = detailEl._open ? '▲' : '▼';
-      // Update value display when closing
       if (!detailEl._open) {
         valueSpan.textContent = field.displayValue() || '-';
       }
@@ -233,7 +205,7 @@ function renderReview(container) {
     container.appendChild(row);
   });
 
-  // Search buttons — prominent, at the bottom
+  // Search buttons
   const btnArea = document.createElement('div');
   btnArea.style.cssText = 'margin-top:16px;display:flex;flex-direction:column;gap:8px';
 
@@ -271,7 +243,6 @@ export default {
     const content = el.querySelector('#questionnaire-content') || el;
     clearContainer(content);
 
-    // Always load saved profile — show compact review immediately
     const savedProfile = db.readJSON('search_profile', null);
     profile = savedProfile && typeof savedProfile === 'object' ? { ...savedProfile } : {};
 

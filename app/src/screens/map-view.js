@@ -13,6 +13,7 @@ import { renderTimeline } from '../map/timeline.js';
 import { navigate } from '../router.js';
 import { providers } from '../providers/index.js';
 import { getMapLocalSources, setMapLocalSources } from '../lib/sources.js';
+import { listTrips, addStopToTrip, createTrip } from '../lib/trip.js';
 
 async function loadLeaflet() {
   if (window.L) return window.L;
@@ -381,6 +382,41 @@ export default {
       }
     });
     shareBar.appendChild(srcBtn);
+
+    // Add to Trip button
+    const tripBtn = document.createElement('button');
+    tripBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;border:none;cursor:pointer;color:white;background:#6366f1';
+    tripBtn.textContent = '\uD83D\uDEE4\uFE0F ' + (t('addToTrip') || 'Add to Trip');
+    tripBtn.addEventListener('click', async () => {
+      const trips = await listTrips();
+      const options = trips.map(tr => tr.title || t('untitled') || 'Untitled');
+      options.push('+ ' + (t('newTripRoute') || 'New Trip'));
+      const idx = await actionSheet(t('addToTrip') || 'Add to Trip', options);
+      if (idx < 0) return;
+
+      let tripId;
+      if (idx < trips.length) {
+        tripId = trips[idx].id;
+      } else {
+        const name = await modalPrompt(
+          t('newTripRoute') || 'New Trip',
+          t('mapNameMsg') || 'Choose a name',
+          ''
+        );
+        if (!name || !name.trim()) return;
+        const newTrip = await createTrip({ title: name.trim() });
+        tripId = newTrip.id;
+      }
+
+      await addStopToTrip(tripId, {
+        type: 'map',
+        mapId: params.mapId,
+        stayDuration: null,
+        travelMode: 'car',
+      });
+      showToast((t('addedToTrip') || 'Added to trip') + '!');
+    });
+    shareBar.appendChild(tripBtn);
 
     mapContainer.appendChild(shareBar);
 

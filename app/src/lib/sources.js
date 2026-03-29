@@ -1,52 +1,92 @@
 // Copyright 2026 Carlo Cancellieri
-// All rights reserved. Proprietary license.
+// SPDX-License-Identifier: GPL-3.0-only WITH additional terms
 
 import { db } from '../storage/index.js';
 
 /**
- * Well-known global event/activity sources.
- * `prompt` is the text injected into the LLM prompt when enabled.
+ * Bundled fallback — minimal set so the app works offline / if fetch fails.
  */
-// Global platforms
-export const KNOWN_SOURCES = [
+const FALLBACK_SOURCES = [
   { id: 'facebook', label: 'Facebook Events', group: 'global', prompt: 'Facebook Events (facebook.com/events) for local community events and gatherings' },
   { id: 'eventbrite', label: 'Eventbrite', group: 'global', prompt: 'Eventbrite (eventbrite.com) for ticketed events, workshops, and festivals' },
-  { id: 'meetup', label: 'Meetup', group: 'global', prompt: 'Meetup (meetup.com) for group activities, social events, and hobby meetups' },
   { id: 'tripadvisor', label: 'TripAdvisor', group: 'global', prompt: 'TripAdvisor (tripadvisor.com) for top-rated attractions, restaurants, and tours' },
-  { id: 'viator', label: 'Viator', group: 'global', prompt: 'Viator (viator.com) for guided tours, excursions, and experience bookings' },
-  { id: 'getyourguide', label: 'GetYourGuide', group: 'global', prompt: 'GetYourGuide (getyourguide.com) for tours, skip-the-line tickets, and local experiences' },
-  { id: 'timeout', label: 'Time Out', group: 'global', prompt: 'Time Out (timeout.com) for curated city guides, restaurant picks, and nightlife' },
-  { id: 'yelp', label: 'Yelp', group: 'global', prompt: 'Yelp (yelp.com) for highly-rated local restaurants, bars, and services' },
-  { id: 'google_events', label: 'Google Events', group: 'global', prompt: 'Google Events search for upcoming local events and happenings' },
-  // Italy
-  { id: 'italia_it', label: '🇮🇹 Italia.it', group: 'IT', prompt: 'Italia.it (italia.it) — official Italian tourism portal for events and attractions' },
-  { id: 'zerodue', label: '🇮🇹 02Blog/Today', group: 'IT', prompt: 'Network of Italian city blogs (romatoday.it, milanotoday.it, etc.) for local news and events' },
-  { id: 'doveviaggi', label: '🇮🇹 Dove Viaggi', group: 'IT', prompt: 'Dove Viaggi (viaggi.corriere.it) for Italian travel guides and event calendars' },
-  // Spain
-  { id: 'spain_info', label: '🇪🇸 Spain.info', group: 'ES', prompt: 'Spain.info (spain.info) — official Spanish tourism portal for fiestas, events, and cultural activities' },
-  { id: 'guiarepsol', label: '🇪🇸 Guía Repsol', group: 'ES', prompt: 'Guía Repsol (guiarepsol.com) for Spanish restaurants, routes, and local festivals' },
-  { id: 'timeout_es', label: '🇪🇸 Time Out España', group: 'ES', prompt: 'Time Out Barcelona/Madrid (timeout.es) for urban events, nightlife, and food' },
-  // France
-  { id: 'france_fr', label: '🇫🇷 France.fr', group: 'FR', prompt: 'France.fr (france.fr) — official French tourism portal for events and cultural highlights' },
-  { id: 'sortiraparis', label: '🇫🇷 Sortir à Paris', group: 'FR', prompt: 'Sortir à Paris (sortiraparis.com) for Paris events, exhibitions, and outings' },
-  { id: 'lofficielvoyages', label: '🇫🇷 L\'Officiel', group: 'FR', prompt: 'L\'Officiel des Spectacles for French entertainment, theatre, and cinema listings' },
-  // Germany
-  { id: 'germany_travel', label: '🇩🇪 Germany Travel', group: 'DE', prompt: 'Germany Travel (germany.travel) — official German tourism portal for events and festivals' },
-  { id: 'berlin_de', label: '🇩🇪 Berlin.de', group: 'DE', prompt: 'Berlin.de events calendar for concerts, festivals, and cultural events in Germany' },
-  // UK
-  { id: 'visitbritain', label: '🇬🇧 Visit Britain', group: 'GB', prompt: 'Visit Britain (visitbritain.com) for UK events, attractions, and experiences' },
-  { id: 'londonist', label: '🇬🇧 Londonist', group: 'GB', prompt: 'Londonist (londonist.com) for London events, hidden gems, and things to do' },
-  // US
-  { id: 'eventful', label: '🇺🇸 Eventful', group: 'US', prompt: 'Eventful/Bandsintown for US concerts, shows, and local entertainment' },
-  // Japan
-  { id: 'jnto', label: '🇯🇵 JNTO', group: 'JP', prompt: 'Japan National Tourism Organization (japan.travel) for festivals, seasonal events, and cultural experiences' },
-  // Portugal
-  { id: 'visitportugal', label: '🇵🇹 Visit Portugal', group: 'PT', prompt: 'Visit Portugal (visitportugal.com) for Portuguese events, festivals, and cultural activities' },
-  // Netherlands
-  { id: 'holland', label: '🇳🇱 Holland.com', group: 'NL', prompt: 'Holland.com for Dutch events, King\'s Day, festivals, and museum exhibitions' },
-  // Greece
-  { id: 'visitgreece', label: '🇬🇷 Visit Greece', group: 'GR', prompt: 'Visit Greece (visitgreece.gr) for Greek festivals, island events, and cultural happenings' },
 ];
+
+// Runtime cache
+let _cachedSources = null;
+
+/** Default bundled sources URL (relative to app root) */
+const DEFAULT_SOURCES_URL = 'sources.json';
+
+/** Get the configured sources file URL (or default) */
+export function getSourcesUrl() {
+  return db.readJSON('sources_file_url', '') || DEFAULT_SOURCES_URL;
+}
+
+/** Set a custom sources file URL (empty string = use default) */
+export function setSourcesUrl(url) {
+  db.writeJSON('sources_file_url', url || '');
+  _cachedSources = null; // invalidate cache
+}
+
+/**
+ * Load sources from the configured URL (or bundled default).
+ * Returns the cached array if already loaded.
+ * Call `reloadSources()` to force a refetch.
+ */
+export async function loadSources() {
+  if (_cachedSources) return _cachedSources;
+
+  const url = getSourcesUrl();
+  try {
+    const resp = await fetch(url, { cache: 'no-cache' });
+    if (!resp.ok) throw new Error(resp.status);
+    const data = await resp.json();
+    _cachedSources = Array.isArray(data) ? data : (data.sources || FALLBACK_SOURCES);
+    // persist a copy so it works offline next time
+    db.writeJSON('sources_cache', _cachedSources);
+  } catch {
+    // Try offline cache, then fallback
+    _cachedSources = db.readJSON('sources_cache', null) || FALLBACK_SOURCES;
+  }
+  return _cachedSources;
+}
+
+/** Force reload from the configured URL */
+export async function reloadSources() {
+  _cachedSources = null;
+  return loadSources();
+}
+
+/**
+ * Synchronous getter — returns cached sources or offline cache.
+ * Use after `loadSources()` has been awaited at boot time.
+ */
+export function getKnownSources() {
+  if (_cachedSources) return _cachedSources;
+  _cachedSources = db.readJSON('sources_cache', null) || FALLBACK_SOURCES;
+  return _cachedSources;
+}
+
+// Keep KNOWN_SOURCES as a getter for backward compatibility
+export const KNOWN_SOURCES = new Proxy([], {
+  get(target, prop) {
+    const data = getKnownSources();
+    if (prop === Symbol.iterator) return data[Symbol.iterator].bind(data);
+    if (prop === 'length') return data.length;
+    if (prop === 'forEach') return data.forEach.bind(data);
+    if (prop === 'filter') return data.filter.bind(data);
+    if (prop === 'map') return data.map.bind(data);
+    if (prop === 'find') return data.find.bind(data);
+    if (prop === 'some') return data.some.bind(data);
+    if (prop === 'every') return data.every.bind(data);
+    if (prop === 'reduce') return data.reduce.bind(data);
+    if (prop === 'indexOf') return data.indexOf.bind(data);
+    if (prop === 'includes') return data.includes.bind(data);
+    if (typeof prop === 'string' && !isNaN(prop)) return data[Number(prop)];
+    return Reflect.get(data, prop);
+  },
+});
 
 // Default enabled sources for new users
 const DEFAULT_ENABLED = ['facebook', 'eventbrite', 'tripadvisor'];
@@ -95,7 +135,8 @@ export function buildSourcesPrompt(mapId) {
 
   // Known enabled sources
   const enabled = getEnabledSources();
-  const knownLines = KNOWN_SOURCES
+  const sources = getKnownSources();
+  const knownLines = sources
     .filter((s) => enabled.includes(s.id))
     .map((s) => s.prompt);
 

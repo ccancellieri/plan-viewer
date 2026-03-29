@@ -10,6 +10,7 @@ const MENU_ITEMS = [
   { icon: '🗺️', key: 'newTrip',   screen: 'new-trip'   },
   { icon: '🎙️', key: 'voicePlan', screen: 'voice-plan' },
   { icon: '📚', key: 'myMaps',    screen: 'my-maps'    },
+  { icon: '🛤️', key: 'myTrips',   screen: 'my-trips'   },
   { icon: '⚙️', key: 'settings',  screen: 'settings'   },
 ];
 
