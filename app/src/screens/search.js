@@ -304,12 +304,14 @@ function renderResults(container, params) {
 
   loadMoreBtn.addEventListener('click', () => loadMore());
 
-  loadAllBtn.addEventListener('click', async () => {
+  async function triggerLoadAll() {
     stopRequested = false;
     while (!exhausted && !stopRequested) {
       await loadMore();
     }
-  });
+  }
+
+  loadAllBtn.addEventListener('click', () => triggerLoadAll());
 
   stopBtn.addEventListener('click', () => { stopRequested = true; });
 
@@ -396,6 +398,8 @@ function renderResults(container, params) {
 
   container.appendChild(btnRow);
   updateActionBtn();
+
+  return { triggerLoadAll };
 }
 
 export default {
@@ -416,6 +420,11 @@ export default {
 
     const activities = await doSearch(content, searchParams, []);
     allActivities = activities;
-    renderResults(content, searchParams);
+    const controls = renderResults(content, searchParams);
+
+    // Auto-trigger Load All if requested from questionnaire
+    if (searchParams.loadAll && allActivities.length > 0 && controls) {
+      controls.triggerLoadAll();
+    }
   },
 };

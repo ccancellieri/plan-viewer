@@ -2,6 +2,7 @@
 // All rights reserved. Proprietary license.
 
 import { t } from '../i18n/index.js';
+import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { createChipSelect } from '../ui/chip-select.js';
 
@@ -243,6 +244,27 @@ function renderSummary(container) {
     container.appendChild(row);
   });
 
+  function doSearch(loadAll) {
+    // Save profile for reuse in future searches
+    db.writeJSON('search_profile', profile);
+    navigate('search', {
+      ...tripParams,
+      mood: profile.mood || [],
+      time: profile.time || [],
+      budget: profile.budget || null,
+      group: profile.group || null,
+      distance: profile.distance || null,
+      interests: profile.interests || '',
+      avoid: profile.avoid || '',
+      loadAll: loadAll || false,
+    });
+  }
+
+  const hint = document.createElement('p');
+  hint.className = 'text-secondary text-sm text-center mt-8';
+  hint.textContent = t('qEditOrSearch') || 'Tap Search to go, or tap any field to edit it';
+  container.appendChild(hint);
+
   const btnRow = document.createElement('div');
   btnRow.className = 'nav-btns';
 
@@ -257,22 +279,87 @@ function renderSummary(container) {
 
   const searchBtn = document.createElement('button');
   searchBtn.className = 'btn btn-primary';
-  searchBtn.textContent = t('qSearch') || 'Search!';
-  searchBtn.addEventListener('click', () => {
-    navigate('search', {
-      ...tripParams,
-      mood: profile.mood || [],
-      time: profile.time || [],
-      budget: profile.budget || null,
-      group: profile.group || null,
-      distance: profile.distance || null,
-      interests: profile.interests || '',
-      avoid: profile.avoid || '',
-    });
-  });
+  searchBtn.textContent = (t('qSearch') || 'Search') + ' (~20)';
+  searchBtn.addEventListener('click', () => doSearch(false));
   btnRow.appendChild(searchBtn);
 
   container.appendChild(btnRow);
+
+  const searchAllBtn = document.createElement('button');
+  searchAllBtn.className = 'btn btn-primary btn-block mt-8';
+  searchAllBtn.style.cssText = 'background:#667eea;border-color:#667eea';
+  searchAllBtn.textContent = t('loadAll') || 'Search All';
+  searchAllBtn.addEventListener('click', () => doSearch(true));
+  container.appendChild(searchAllBtn);
+}
+
+function renderProfileChoice(container) {
+  clearContainer(container);
+
+  const heading = document.createElement('h3');
+  heading.textContent = t('qTitle') || 'Trip Profile';
+  container.appendChild(heading);
+
+  const msg = document.createElement('p');
+  msg.className = 'text-secondary';
+  msg.textContent = t('qMsg') || 'You have a saved profile from a previous search.';
+  container.appendChild(msg);
+
+  // Show saved profile summary
+  const saved = db.readJSON('search_profile', {});
+  const summaryDiv = document.createElement('div');
+  summaryDiv.className = 'mt-8 mb-8';
+  summaryDiv.style.cssText = 'padding:12px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border)';
+  const fields = [
+    { label: t('qMood') || 'Mood', value: (saved.mood || []).join(', ') },
+    { label: t('qTime') || 'Time', value: (saved.time || []).join(', ') },
+    { label: t('qBudget') || 'Budget', value: saved.budget || '' },
+    { label: t('qGroup') || 'Group', value: saved.group || '' },
+    { label: t('qDistance') || 'Distance', value: saved.distance || '' },
+    { label: t('qSpecific') || 'Interests', value: saved.interests || '' },
+    { label: t('qAvoid') || 'Avoid', value: saved.avoid || '' },
+  ];
+  fields.forEach((f) => {
+    if (!f.value) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'font-size:13px;margin:2px 0';
+    const b = document.createElement('strong');
+    b.textContent = f.label + ': ';
+    row.appendChild(b);
+    row.appendChild(document.createTextNode(f.value));
+    summaryDiv.appendChild(row);
+  });
+  container.appendChild(summaryDiv);
+
+  const reuseBtn = document.createElement('button');
+  reuseBtn.className = 'btn btn-primary btn-block';
+  reuseBtn.textContent = t('qUseGlobal') || 'Use saved profile';
+  reuseBtn.addEventListener('click', () => {
+    profile = { ...saved };
+    currentStep = STEPS.indexOf('summary');
+    renderStep(container);
+  });
+  container.appendChild(reuseBtn);
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'btn btn-secondary btn-block mt-8';
+  editBtn.textContent = t('qEdit') || 'Edit profile';
+  editBtn.addEventListener('click', () => {
+    profile = { ...saved };
+    currentStep = 0;
+    renderStep(container);
+  });
+  container.appendChild(editBtn);
+
+  const freshBtn = document.createElement('button');
+  freshBtn.className = 'btn btn-secondary btn-block mt-8';
+  freshBtn.textContent = t('qFromScratch') || 'Start fresh';
+  freshBtn.addEventListener('click', () => {
+    profile = {};
+    currentStep = 0;
+    renderStep(container);
+  });
+  container.appendChild(freshBtn);
 }
 
 export default {
@@ -282,6 +369,13 @@ export default {
     currentStep = 0;
     const content = el.querySelector('#questionnaire-content') || el;
     clearContainer(content);
-    renderStep(content);
+
+    // If a saved profile exists, offer to reuse it
+    const savedProfile = db.readJSON('search_profile', null);
+    if (savedProfile && Object.keys(savedProfile).some((k) => savedProfile[k] && (Array.isArray(savedProfile[k]) ? savedProfile[k].length > 0 : true))) {
+      renderProfileChoice(content);
+    } else {
+      renderStep(content);
+    }
   },
 };
