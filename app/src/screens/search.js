@@ -422,10 +422,58 @@ export default {
 
     const activities = await doSearch(content, searchParams, []);
     allActivities = activities;
+
+    // If we got results, auto-create a map and navigate directly to map-view
+    if (allActivities.length > 0) {
+      if (searchParams.mergeMapId) {
+        // Merge into existing map
+        const existing = db.readJSON('map_data_' + searchParams.mergeMapId);
+        if (existing) {
+          const existingNames = new Set((existing.activities || []).map((a) => a.name));
+          const newOnes = allActivities.filter((a) => !existingNames.has(a.name));
+          existing.activities = (existing.activities || []).concat(newOnes);
+          db.writeJSON('map_data_' + searchParams.mergeMapId, existing);
+          showToast(newOnes.length + ' ' + (t('addToMapDone') || 'events added to map'));
+          navigate('map-view', { mapId: searchParams.mergeMapId });
+          return;
+        }
+      }
+
+      // Create new map automatically
+      const mapId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const mapTitle = (searchParams.city || 'Trip') + ' ' + (searchParams.dateStart || '');
+      const registry = db.readJSON('maps_registry', []);
+      registry.push({
+        id: mapId,
+        title: mapTitle,
+        city: searchParams.city,
+        dateStart: searchParams.dateStart,
+        dateEnd: searchParams.dateEnd,
+        createdAt: new Date().toISOString(),
+      });
+      db.writeJSON('maps_registry', registry);
+
+      db.writeJSON('map_data_' + mapId, {
+        title: mapTitle,
+        city: searchParams.city,
+        centerLat: searchParams.centerLat,
+        centerLng: searchParams.centerLng,
+        centerName: searchParams.centerName || '',
+        dateStart: searchParams.dateStart,
+        dateEnd: searchParams.dateEnd,
+        activities: allActivities,
+      });
+
+      showToast(allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + (t('mapSaved') || 'Map saved!'));
+      navigate('map-view', { mapId });
+      return;
+    }
+
+    // No results — show the results page with load controls
     const controls = renderResults(content, searchParams);
 
     // Auto-trigger Load All if requested from questionnaire
-    if (searchParams.loadAll && allActivities.length > 0 && controls) {
+    if (searchParams.loadAll && controls) {
       controls.triggerLoadAll();
     }
   },
