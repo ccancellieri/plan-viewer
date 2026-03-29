@@ -57,30 +57,20 @@ function getSystemPrompt() {
   return SYSTEM_PROMPT_BASE.replace('{LANG}', lang);
 }
 
-export function buildPrompt(city, dateStart, dateEnd, centerName, interests, prefs, webSearchContext) {
-  const systemPrompt = getSystemPrompt();
-  let userPrompt = buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, prefs);
-  userPrompt += '\n\nReturn at least 10 activities.';
-
-  if (webSearchContext) {
-    userPrompt += `\n\nHere is additional context from a web search that may help you find real, current events:\n${webSearchContext}`;
-  }
-
-  return { systemPrompt, userPrompt };
-}
-
 /**
- * Build system + user prompts for paginated (follow-up) requests.
- * Asks for EXACTLY 4 activities and excludes already-found names.
+ * Build system + user prompts for activity discovery.
+ * First call (no excludeNames): asks for 20 activities.
+ * Follow-up calls: asks for 10 more, excluding already-found names.
  */
 export function buildPaginatedPrompt(city, dateStart, dateEnd, centerName, interests, prefs, excludeNames, webSearchContext) {
   const systemPrompt = getSystemPrompt();
-
   let userPrompt = buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, prefs);
-  userPrompt += '\n\nReturn EXACTLY 8 activities.';
 
   if (excludeNames && excludeNames.length > 0) {
+    userPrompt += '\n\nReturn EXACTLY 10 new activities.';
     userPrompt += `\n\nDo NOT include any of these already found:\n${excludeNames.map((n) => `- ${n}`).join('\n')}`;
+  } else {
+    userPrompt += '\n\nReturn at least 20 activities. The more the better.';
   }
 
   if (webSearchContext) {

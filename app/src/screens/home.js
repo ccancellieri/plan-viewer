@@ -4,7 +4,7 @@
 import { t, getLang } from '../i18n/index.js';
 import { navigate } from '../router.js';
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 
 const MENU_ITEMS = [
   { icon: '🗺️', key: 'newTrip',   screen: 'new-trip'   },

@@ -209,29 +209,67 @@ function renderResults(container, params) {
     listContainer.appendChild(empty);
   }
 
-  const btnRow = document.createElement('div');
-  btnRow.className = 'flex-col gap-8 mt-16';
+  // Counter
+  if (allActivities.length > 0) {
+    const counter = document.createElement('p');
+    counter.className = 'text-secondary text-sm text-center mt-8';
+    counter.textContent = allActivities.length + ' ' + (t('activities') || 'activities');
+    container.appendChild(counter);
+  }
 
-  const loadMoreBtn = document.createElement('button');
-  loadMoreBtn.className = 'btn btn-secondary';
-  loadMoreBtn.textContent = t('loadMore') || 'Load More';
-  loadMoreBtn.addEventListener('click', async () => {
+  // Infinite scroll sentinel
+  let loadingMore = false;
+  let exhausted = false;
+  const sentinel = document.createElement('div');
+  sentinel.className = 'text-secondary text-center mt-8 mb-8';
+  sentinel.style.minHeight = '48px';
+  sentinel.style.lineHeight = '48px';
+  container.appendChild(sentinel);
+
+  async function loadMore() {
+    if (loadingMore || exhausted) return;
+    loadingMore = true;
+    sentinel.textContent = t('searching') || 'Loading...';
     const excludeNames = allActivities.map((a) => a.name);
     const newActivities = await doSearch(container, params, excludeNames);
     if (newActivities.length > 0) {
       allActivities = allActivities.concat(newActivities);
-      renderResults(container, params);
+      newActivities.forEach((activity) => {
+        const card = createActivityCard(activity, params.centerLat, params.centerLng);
+        listContainer.appendChild(card);
+      });
+      sentinel.textContent = '';
     } else {
-      showToast(t('noMoreResults') || 'No more results.');
+      exhausted = true;
+      sentinel.textContent = t('noMoreResults') || 'No more results.';
     }
+    loadingMore = false;
+  }
+
+  // Observe sentinel visibility for infinite scroll
+  const scrollParent = container.closest('.content') || container;
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && allActivities.length > 0) {
+      loadMore();
+    }
+  }, { root: scrollParent, rootMargin: '200px' });
+  observer.observe(sentinel);
+
+  // Manual load more as fallback
+  sentinel.style.cursor = 'pointer';
+  sentinel.addEventListener('click', () => {
+    if (!exhausted) loadMore();
   });
-  btnRow.appendChild(loadMoreBtn);
+
+  // Action buttons (sticky at bottom)
+  const btnRow = document.createElement('div');
+  btnRow.className = 'flex-col gap-8 mt-8';
+  btnRow.style.cssText = 'position:sticky;bottom:0;padding:12px 0;background:var(--bg);z-index:5';
 
   if (params.mergeMapId) {
-    // Merge into existing map
     const mergeBtn = document.createElement('button');
-    mergeBtn.className = 'btn btn-primary';
-    mergeBtn.textContent = t('addToMap') || 'Add Events';
+    mergeBtn.className = 'btn btn-primary btn-block';
+    mergeBtn.textContent = allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + (t('addToMap') || 'Add to Map');
     mergeBtn.addEventListener('click', () => {
       const existing = db.readJSON('map_data_' + params.mergeMapId);
       if (!existing) return;
@@ -245,8 +283,8 @@ function renderResults(container, params) {
     btnRow.appendChild(mergeBtn);
   } else {
     const createMapBtn = document.createElement('button');
-    createMapBtn.className = 'btn btn-primary';
-    createMapBtn.textContent = t('createMap') || 'Create Map';
+    createMapBtn.className = 'btn btn-primary btn-block';
+    createMapBtn.textContent = allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + (t('createMap') || 'Create Map');
     createMapBtn.addEventListener('click', async () => {
       const mapName = await modalPrompt(
         t('mapName') || 'Map name',
