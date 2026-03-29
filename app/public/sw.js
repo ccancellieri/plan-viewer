@@ -1,7 +1,7 @@
 // Copyright 2026 Carlo Cancellieri
 // All rights reserved. Proprietary license.
 
-const CACHE_NAME = 'planner-v12';
+const CACHE_NAME = 'planner-v13';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

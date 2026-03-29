@@ -265,6 +265,16 @@ function renderResults(container, params) {
   downloadBtn.className = 'btn btn-secondary';
   downloadBtn.textContent = t('download') || 'Download JSON';
 
+  // Action button (Create Map / Add to Map) — declared early so updateControls can reference it
+  let actionBtn = null;
+
+  function updateActionBtn() {
+    if (actionBtn) {
+      const label = params.mergeMapId ? (t('addToMap') || 'Add to Map') : (t('createMap') || 'Create Map');
+      actionBtn.textContent = allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + label;
+    }
+  }
+
   function updateControls() {
     while (controlRow.firstChild) controlRow.removeChild(controlRow.firstChild);
     if (exhausted) {
@@ -332,14 +342,6 @@ function renderResults(container, params) {
   const btnRow = document.createElement('div');
   btnRow.className = 'flex-col gap-8 mt-8';
   btnRow.style.cssText = 'position:sticky;bottom:0;padding:12px 0;background:var(--bg);z-index:5';
-  let actionBtn = null;
-
-  function updateActionBtn() {
-    if (actionBtn) {
-      const label = params.mergeMapId ? (t('addToMap') || 'Add to Map') : (t('createMap') || 'Create Map');
-      actionBtn.textContent = allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + label;
-    }
-  }
 
   if (params.mergeMapId) {
     const mergeBtn = document.createElement('button');
