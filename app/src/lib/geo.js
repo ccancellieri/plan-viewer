@@ -58,7 +58,17 @@ export async function searchLocation(query) {
  * Uses the activity name + city as context for better results.
  * Respects Nominatim's 1 req/sec rate limit.
  */
-export async function geocodeActivities(activities, city) {
+/**
+ * Geocode activities and validate that results are near the city center.
+ * @param activities - parsed activity array
+ * @param city - city name string
+ * @param centerLat - city center latitude (optional, improves validation)
+ * @param centerLng - city center longitude (optional, improves validation)
+ * @param maxDistKm - max acceptable distance from center (default 50km)
+ */
+export async function geocodeActivities(activities, city, centerLat, centerLng, maxDistKm) {
+  const maxDist = maxDistKm || 50;
+
   for (let i = 0; i < activities.length; i++) {
     const act = activities[i];
     const query = act.address
@@ -71,9 +81,28 @@ export async function geocodeActivities(activities, city) {
     try {
       const results = await searchLocation(query);
       if (results.length > 0) {
-        act.lat = results[0].lat;
-        act.lng = results[0].lng;
-        if (!act.address) act.address = results[0].name;
+        const candidate = results[0];
+
+        // Validate: if we have a city center, reject results too far away
+        if (centerLat != null && centerLng != null) {
+          const dist = haversine(centerLat, centerLng, candidate.lat, candidate.lng);
+          if (dist > maxDist) {
+            // Geocoded point is too far — keep LLM coordinates if they're closer,
+            // otherwise snap to city center
+            if (act.lat != null && act.lng != null) {
+              const llmDist = haversine(centerLat, centerLng, act.lat, act.lng);
+              if (llmDist <= maxDist) continue; // LLM coords are acceptable
+            }
+            // Fallback: use city center with small random offset to avoid stacking
+            act.lat = centerLat + (Math.random() - 0.5) * 0.005;
+            act.lng = centerLng + (Math.random() - 0.5) * 0.005;
+            continue;
+          }
+        }
+
+        act.lat = candidate.lat;
+        act.lng = candidate.lng;
+        if (!act.address) act.address = candidate.name;
       }
     } catch {
       // keep LLM coordinates as fallback

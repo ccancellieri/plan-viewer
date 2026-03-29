@@ -128,7 +128,7 @@ async function doSearch(container, params, excludeNames) {
       const activities = parseActivities(response, params.dateStart, params.dateEnd);
       if (activities.length > 0) {
         const geoDismiss = showLoader('Geocoding addresses...');
-        await geocodeActivities(activities, params.city || '');
+        await geocodeActivities(activities, params.city || '', params.centerLat, params.centerLng, params.maxDistance);
         geoDismiss();
       }
       return activities;
@@ -175,7 +175,7 @@ async function doSearch(container, params, excludeNames) {
     // Geocode each activity's address for accurate coordinates
     if (activities.length > 0) {
       const geoDismiss = showLoader('Geocoding addresses...');
-      await geocodeActivities(activities, params.city || '');
+      await geocodeActivities(activities, params.city || '', params.centerLat, params.centerLng, params.maxDistance);
       geoDismiss();
     }
 
