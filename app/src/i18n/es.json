@@ -21,6 +21,7 @@
   "startDate": "Fecha inicio",
   "endDate": "Fecha fin",
   "startPoint": "Punto de Partida",
+  "recenter": "Centrar en el punto de inicio",
   "useThis": "Usar este?",
   "provider": "Proveedor AI",
   "providerMsg": "Que AI usar para buscar actividades?",

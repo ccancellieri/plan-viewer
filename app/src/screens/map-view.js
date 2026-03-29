@@ -484,28 +484,33 @@ export default {
     // --- Initialize Leaflet ---
     const L = await loadLeaflet();
 
-    leafletMap = L.map(mapViewDiv).setView([center.lat, center.lng], 13);
+    leafletMap = L.map(mapViewDiv).setView([center.lat, center.lng], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '\u00a9 OpenStreetMap contributors',
       maxZoom: 19,
     }).addTo(leafletMap);
 
-    // Start point marker
+    // Start point marker — visible house pin
     const startIcon = L.divIcon({
       className: '',
-      iconSize: [28, 28],
-      iconAnchor: [14, 28],
+      html: '<div style="width:36px;height:36px;background:#667eea;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:18px">🏠</div>',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+      popupAnchor: [0, -20],
     });
-    const startMarker = L.marker([center.lat, center.lng], { icon: startIcon }).addTo(leafletMap);
+    const startMarker = L.marker([center.lat, center.lng], { icon: startIcon, zIndexOffset: 1000 }).addTo(leafletMap);
     const startPopup = document.createElement('div');
     const startStrong = document.createElement('strong');
-    startStrong.textContent = center.name;
+    startStrong.textContent = center.name || (t('startPoint') || 'Start point');
     startPopup.appendChild(startStrong);
-    startPopup.appendChild(document.createElement('br'));
-    const startEm = document.createElement('em');
-    startEm.textContent = 'Start point';
-    startPopup.appendChild(startEm);
+    if (center.name) {
+      startPopup.appendChild(document.createElement('br'));
+      const startEm = document.createElement('em');
+      startEm.style.cssText = 'font-size:11px;color:#666';
+      startEm.textContent = t('startPoint') || 'Start point';
+      startPopup.appendChild(startEm);
+    }
     startMarker.bindPopup(startPopup);
 
     // Radius circle
@@ -517,6 +522,24 @@ export default {
       weight: 1.5,
       dashArray: '5,5',
     }).addTo(leafletMap);
+
+    // Recenter button control
+    const RecenterControl = L.Control.extend({
+      options: { position: 'bottomright' },
+      onAdd() {
+        const btn = L.DomUtil.create('button', '');
+        btn.style.cssText = 'width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1';
+        btn.title = t('recenter') || 'Center on start';
+        btn.textContent = '🏠';
+        L.DomEvent.on(btn, 'click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          leafletMap.setView([center.lat, center.lng], 14, { animate: true });
+          startMarker.openPopup();
+        });
+        return btn;
+      },
+    });
+    new RecenterControl().addTo(leafletMap);
 
     leafletMap.on('click', () => leafletMap.closePopup());
 

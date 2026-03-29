@@ -3,7 +3,7 @@
 
 const screens = {};
 const lastParams = {};
-let navigating = false;
+let expectedHash = null;
 
 export function registerScreen(name, handler) {
   screens[name] = handler;
@@ -17,9 +17,8 @@ export function navigate(screen, params) {
     el.classList.add('active');
     screens[screen]?.mount(el, lastParams[screen] || {});
   }
-  navigating = true;
+  expectedHash = screen;
   window.location.hash = screen;
-  navigating = false;
 }
 
 export function getCurrentScreen() {
@@ -28,8 +27,12 @@ export function getCurrentScreen() {
 
 export function initRouter(defaultScreen = 'home') {
   window.addEventListener('hashchange', () => {
-    if (navigating) return;
     const screen = getCurrentScreen();
+    if (screen === expectedHash) {
+      expectedHash = null;
+      return;
+    }
+    expectedHash = null;
     if (screens[screen]) navigate(screen);
   });
   navigate(window.location.hash.slice(1) || defaultScreen);
