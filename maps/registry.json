@@ -1,0 +1,58 @@
+[
+  {
+    "id": "roma-weekend-mar-2026",
+    "title": "Weekend a Roma - 21-22 Marzo 2026",
+    "file": "roma-weekend-mar-2026.html",
+    "city": "Roma",
+    "location": "Roma, San Giovanni",
+    "date_start": "2026-03-21",
+    "date_end": "2026-03-22",
+    "date_label": "21-22 Marzo 2026",
+    "activities": 8,
+    "categories": [
+      "Cultura",
+      "Festival",
+      "Giochi",
+      "Musica",
+      "Outdoor"
+    ],
+    "created": "2026-03-18"
+  },
+  {
+    "id": "ortona-pasqua-apr-2026",
+    "title": "Ortona - Settimana Santa 2-3 Aprile 2026",
+    "file": "ortona-pasqua-apr-2026.html",
+    "city": "Ortona",
+    "location": "Ortona, Centro Storico",
+    "date_start": "2026-04-02",
+    "date_end": "2026-04-03",
+    "date_label": "2-3 Aprile 2026",
+    "activities": 8,
+    "categories": [
+      "Cultura",
+      "Cibo / Locali",
+      "Festival",
+      "Musica",
+      "Outdoor"
+    ],
+    "created": "2026-03-18"
+  },
+  {
+    "id": "peschici-pasqua-apr-2026",
+    "title": "Peschici - Pasqua 3-5 Aprile 2026",
+    "file": "peschici-pasqua-apr-2026.html",
+    "city": "Peschici",
+    "location": "Peschici, Centro Storico",
+    "date_start": "2026-04-03",
+    "date_end": "2026-04-05",
+    "date_label": "3-5 Aprile 2026",
+    "activities": 9,
+    "categories": [
+      "Cultura",
+      "Cibo / Locali",
+      "Musica",
+      "Outdoor"
+    ],
+    "created": "2026-03-18"
+  }
+]
