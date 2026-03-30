@@ -24,7 +24,8 @@ Rules:
 - "date" must be YYYY-MM-DD
 - "time_start" and "time_end" must be HH:MM (24 h)
 - "cost" is a string like "Free", "€5", "€10-15"
-- "lat" and "lng" are numeric (float)
+- "lat" and "lng" are numeric (float) with at least 4 decimal places for accuracy
+- IMPORTANT: Coordinates must point to the ACTUAL location on land, not in water. For coastal/promontory towns, double-check that lat/lng fall on the correct side of the coastline. Prefer coordinates of the specific venue, street, or landmark rather than approximate area centers.
 - "category" must be one of: music, games, outdoor, culture, food, sport, market, festival, other
 - Do NOT include any text outside the JSON array
 - IMPORTANT: Write ALL text fields (name, description, cost) in {LANG}. Only date/time/lat/lng/category stay in their fixed format.`;
