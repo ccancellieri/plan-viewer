@@ -4,7 +4,7 @@ import { navigate } from '../router.js';
 import { createTrip, getTrip, updateTrip, addStopToTrip, removeStop, reorderStops, splitCorridor } from '../lib/trip.js';
 import { actionSheet, prompt as modalPrompt, confirm, alert as modalAlert, textareaPrompt } from '../ui/modal.js';
 import { showToast } from '../ui/toast.js';
-import { corridorPolygon, pathLength } from '../lib/corridor.js';
+import { corridorPolygon, pathLength, simplifyPath, adaptiveWidth } from '../lib/corridor.js';
 import { estimateTravelTime } from '../lib/osrm.js';
 import { buildCorridorPrompt, buildFocusZonePrompt } from '../lib/prompt.js';
 import { callLLM, providers } from '../providers/index.js';
@@ -57,12 +57,12 @@ function clearMapLayers() {
   mapLayers.corridors = [];
 }
 
-function renderTripOnMap(trip, L) {
+function renderTripOnMap(trip, L, hideCorridorIdx = -1) {
   clearMapLayers();
   const bounds = [];
   let mapStopNum = 0;
 
-  trip.stops.forEach((stop) => {
+  trip.stops.forEach((stop, idx) => {
     if (stop.type === 'map') {
       mapStopNum++;
       const mapData = db.readJSON('map_data_' + stop.mapId, null);
@@ -86,25 +86,29 @@ function renderTripOnMap(trip, L) {
       const latlngs = stop.path.map(p => [p.lat, p.lng]);
       bounds.push(...latlngs);
 
-      if (stop.width) {
-        const poly = corridorPolygon(stop.path, stop.width);
-        const polygon = L.polygon(poly.map(p => [p.lat, p.lng]), {
-          color: '#667eea',
-          fillColor: '#667eea',
-          fillOpacity: 0.12,
-          weight: 1,
-          dashArray: '4 4',
-        }).addTo(leafletMap);
-        mapLayers.corridors.push(polygon);
-      }
+      // Skip the corridor's own polygon/line while it's being reshaped in
+      // waypoint-edit mode, so the live preview isn't drawn twice.
+      if (idx !== hideCorridorIdx) {
+        if (stop.width) {
+          const poly = corridorPolygon(stop.path, stop.width);
+          const polygon = L.polygon(poly.map(p => [p.lat, p.lng]), {
+            color: '#667eea',
+            fillColor: '#667eea',
+            fillOpacity: 0.12,
+            weight: 1,
+            dashArray: '4 4',
+          }).addTo(leafletMap);
+          mapLayers.corridors.push(polygon);
+        }
 
-      const line = L.polyline(latlngs, {
-        color: '#667eea',
-        weight: 3,
-        dashArray: '8 6',
-        opacity: 0.8,
-      }).addTo(leafletMap);
-      mapLayers.corridors.push(line);
+        const line = L.polyline(latlngs, {
+          color: '#667eea',
+          weight: 3,
+          dashArray: '8 6',
+          opacity: 0.8,
+        }).addTo(leafletMap);
+        mapLayers.corridors.push(line);
+      }
 
       // Render corridor activities as markers (visible layers only)
       if (stop.activities && stop.activities.length > 0) {
@@ -554,6 +558,7 @@ async function editCorridor(trip, idx, sheet, el) {
   if (!stop || stop.type !== 'corridor') return;
   const options = [
     '↔️ ' + (t('adjustWidth') || 'Adjust width') + ' (' + (stop.width ? stop.width.toFixed(0) : '?') + ' km)',
+    '✏️ ' + (t('editPath') || 'Edit path'),
     '🎯 ' + (t('addFocusZone') || 'Add focus zone'),
   ];
   const zones = stop.focusZones || [];
@@ -576,19 +581,76 @@ async function editCorridor(trip, idx, sheet, el) {
       return;
     }
     stop.width = Math.max(5, Math.min(num, 200));
+    // Remember this was a manual choice so a later path edit doesn't
+    // silently overwrite it with the adaptive-width recompute.
+    stop.widthUserSet = true;
     currentTrip = await updateTrip(trip.id, { stops: trip.stops });
     renderStopList(currentTrip, sheet, el);
     if (leafletMap) renderTripOnMap(currentTrip, window.L);
   } else if (choice === 1) {
+    editCorridorPath(trip, idx, sheet, el);
+  } else if (choice === 2) {
     addFocusZone(trip, idx, sheet, el);
   } else {
     // Remove the selected focus zone
-    const zoneIdx = choice - 2;
+    const zoneIdx = choice - 3;
     zones.splice(zoneIdx, 1);
     stop.focusZones = zones;
     currentTrip = await updateTrip(trip.id, { stops: trip.stops });
     renderStopList(currentTrip, sheet, el);
     if (leafletMap) renderTripOnMap(currentTrip, window.L);
+  }
+}
+
+/**
+ * Enter waypoint-edit mode for a corridor: renders the path as draggable
+ * markers on the map (see enableCorridorPathEdit in map/drawing.js).
+ * Confirm persists the reshaped path (and recomputes the adaptive width,
+ * unless the user explicitly set one via "Adjust width"); Cancel leaves
+ * the stored corridor untouched.
+ */
+async function editCorridorPath(trip, corridorIdx, sheet, el) {
+  if (!leafletMap || !window.L) return;
+  const stop = trip.stops[corridorIdx];
+  if (!stop || stop.type !== 'corridor' || !stop.path || stop.path.length < 2) return;
+
+  try {
+    const { enableCorridorPathEdit } = await import('../map/drawing.js');
+    const L = window.L;
+
+    showToast(t('editPathHint') || 'Drag the waypoints to reshape the route');
+
+    // Hide this corridor's own polygon/line while the live edit preview
+    // covers the same area, so the two don't overlap.
+    renderTripOnMap(trip, L, corridorIdx);
+
+    enableCorridorPathEdit(leafletMap, L, stop.path, stop.width, async (newPath) => {
+      // Re-read the trip fresh so we don't clobber concurrent edits with
+      // this render's stale stops snapshot.
+      const fresh = await getTrip(trip.id);
+      if (!fresh) return;
+      const freshStop = fresh.stops[corridorIdx];
+      if (!freshStop || freshStop.type !== 'corridor') {
+        renderTripOnMap(currentTrip || trip, L);
+        return;
+      }
+
+      const simplified = simplifyPath(newPath, 0.001);
+      freshStop.path = simplified;
+      if (!freshStop.widthUserSet) {
+        freshStop.width = adaptiveWidth(pathLength(simplified));
+      }
+
+      currentTrip = await updateTrip(fresh.id, { stops: fresh.stops });
+      renderStopList(currentTrip, sheet, el);
+      renderTripOnMap(currentTrip, L);
+      showToast(t('pathUpdated') || 'Route updated');
+    }, () => {
+      // Cancel — nothing was persisted, just restore the normal view.
+      renderTripOnMap(currentTrip || trip, L);
+    });
+  } catch {
+    showToast('Drawing module not available');
   }
 }
 
