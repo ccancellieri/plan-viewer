@@ -43,3 +43,19 @@ ${placemarks}
   </Document>
 </kml>`;
 }
+
+/**
+ * Generate a KML file from map data (or a plain activities array)
+ * and trigger a browser download.
+ */
+export function exportKml(mapData, title) {
+  const activities = Array.isArray(mapData) ? mapData : (mapData && mapData.activities) || [];
+  const kml = generateKML(activities, title);
+  const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (title || 'map') + '.kml';
+  a.click();
+  URL.revokeObjectURL(url);
+}

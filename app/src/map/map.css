@@ -348,6 +348,24 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  cursor: pointer;
+}
+
+.trip-reorder {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.trip-reorder-btn {
+  font-size: 11px;
+  padding: 0 6px;
+  line-height: 1.4;
+}
+
+.trip-reorder-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
 }
 
 .trip-stop-name {
@@ -631,7 +649,7 @@
   opacity: 0.8;
 }
 
-/* Layer info badge */
+/* Layer info badge (tappable — toggles layer visibility) */
 .trip-layer-info {
   display: inline-flex;
   align-items: center;
@@ -641,4 +659,10 @@
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-weight: 500;
+  border: none;
+  cursor: pointer;
+}
+
+.trip-timeline-slot {
+  cursor: pointer;
 }
