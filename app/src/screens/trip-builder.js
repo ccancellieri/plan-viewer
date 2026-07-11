@@ -915,6 +915,23 @@ function localDateKey(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+// Minutes since midnight for an 'HH:MM' string, or null when missing/invalid.
+function timeToMinutes(hhmm) {
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(hhmm || '');
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
+
+// Does a timed activity's window overlap the travel segment's window?
+// Stops don't carry a time-of-day for arrivals/departures today (only
+// dates), so travel is modeled as occupying the first `travelDurationMin`
+// minutes of the day it's rendered under, starting at midnight.
+function activityOverlapsTravel(act, travelDurationMin) {
+  const start = timeToMinutes(act.time_start);
+  if (start == null || !travelDurationMin) return false;
+  const durationMin = act.duration_hours ? act.duration_hours * 60 : 60;
+  return start < travelDurationMin && start + durationMin > 0;
+}
+
 function computeTripTimeline(trip) {
   if (!trip || !trip.stops || trip.stops.length === 0) return { days: [], anytime: [] };
 
@@ -1011,6 +1028,14 @@ function computeTripTimeline(trip) {
     return { date, activities: acts, totalMinutes, budget: totalMinutes > 14 * 60 ? 'over' : totalMinutes > 10 * 60 ? 'warn' : 'ok' };
   });
 
+  // Flag travel-vs-activity conflicts: a red warning when a travel segment
+  // overlaps a timed activity scheduled the same day.
+  travelSegments.forEach(seg => {
+    const day = days.find(d => d.date === seg.date);
+    if (!day) return;
+    seg.hasConflict = day.activities.some(act => activityOverlapsTravel(act, seg.durationMin));
+  });
+
   return { days, anytime, travelSegments };
 }
 
@@ -1077,6 +1102,50 @@ async function editTimelineActivity(trip, entry, container) {
   renderTripTimeline(container, currentTrip || trip);
 }
 
+// Build a single timeline entry (time column + content card), shared by
+// the day's timed slots and the "Along the way" corridor section.
+function buildActivitySlot(act, trip, container) {
+  const cat = CATEGORIES[act.category] || CATEGORIES.other;
+  const slot = document.createElement('div');
+  slot.className = 'trip-timeline-slot';
+
+  // Time column
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'trip-timeline-time';
+  timeDiv.textContent = act.time_start || '?';
+  slot.appendChild(timeDiv);
+
+  // Content column
+  const content = document.createElement('div');
+  content.className = 'trip-timeline-content';
+  content.style.borderLeftColor = cat.color;
+
+  const h4 = document.createElement('h4');
+  h4.textContent = cat.icon + ' ' + (act.name || '');
+  content.appendChild(h4);
+
+  const meta = document.createElement('div');
+  meta.className = 'trip-timeline-meta';
+  const parts = [];
+  if (act._stopName) parts.push(act._stopType === 'corridor' ? '🛤️ ' + act._stopName : '📍 ' + act._stopName);
+  if (act.cost) parts.push(act.cost);
+  if (act.address) parts.push(act.address);
+  meta.textContent = parts.join(' · ');
+  content.appendChild(meta);
+
+  if (act.description) {
+    const desc = document.createElement('div');
+    desc.className = 'trip-timeline-desc';
+    desc.textContent = act.description;
+    content.appendChild(desc);
+  }
+
+  slot.appendChild(content);
+  // Tap to reschedule (set time / date / move to anytime)
+  slot.addEventListener('click', () => editTimelineActivity(trip, act, container));
+  return slot;
+}
+
 function renderTripTimeline(container, trip) {
   container.textContent = '';
 
@@ -1117,9 +1186,16 @@ function renderTripTimeline(container, trip) {
     // Render each travel segment under the single day it belongs to
     travelSegments.filter(seg => seg.date === day.date).forEach(seg => {
       const travelEl = document.createElement('div');
-      travelEl.className = 'trip-timeline-travel';
+      travelEl.className = 'trip-timeline-travel' + (seg.hasConflict ? ' trip-timeline-conflict' : '');
       travelEl.textContent = seg.modeIcon + ' ' + seg.fromName + ' → ' + seg.toName +
         ' (' + formatDuration(seg.durationMin) + (seg.distanceKm ? ', ' + seg.distanceKm + ' km' : '') + ')';
+      if (seg.hasConflict) {
+        const warn = document.createElement('span');
+        warn.className = 'trip-timeline-conflict-badge';
+        warn.textContent = ' ⚠';
+        warn.title = 'Overlaps a scheduled activity';
+        travelEl.appendChild(warn);
+      }
       dayDiv.appendChild(travelEl);
     });
 
@@ -1130,47 +1206,24 @@ function renderTripTimeline(container, trip) {
       dayDiv.appendChild(noAct);
     }
 
-    day.activities.forEach(act => {
-      const cat = CATEGORIES[act.category] || CATEGORIES.other;
-      const slot = document.createElement('div');
-      slot.className = 'trip-timeline-slot';
+    // "Along the way": corridor activities found while travelling, grouped
+    // under their own section beneath the travel segment instead of mixed
+    // into the day's timed slots.
+    const corridorActs = day.activities.filter(act => act._stopType === 'corridor');
+    const timedActs = day.activities.filter(act => act._stopType !== 'corridor');
 
-      // Time column
-      const timeDiv = document.createElement('div');
-      timeDiv.className = 'trip-timeline-time';
-      timeDiv.textContent = act.time_start || '?';
-      slot.appendChild(timeDiv);
+    if (corridorActs.length > 0) {
+      const corridorSection = document.createElement('div');
+      corridorSection.className = 'trip-timeline-corridor-section';
+      const corridorHeader = document.createElement('h3');
+      corridorHeader.className = 'trip-timeline-corridor-header';
+      corridorHeader.textContent = t('alongTheWay') || 'Along the way';
+      corridorSection.appendChild(corridorHeader);
+      corridorActs.forEach(act => corridorSection.appendChild(buildActivitySlot(act, trip, container)));
+      dayDiv.appendChild(corridorSection);
+    }
 
-      // Content column
-      const content = document.createElement('div');
-      content.className = 'trip-timeline-content';
-      content.style.borderLeftColor = cat.color;
-
-      const h4 = document.createElement('h4');
-      h4.textContent = cat.icon + ' ' + (act.name || '');
-      content.appendChild(h4);
-
-      const meta = document.createElement('div');
-      meta.className = 'trip-timeline-meta';
-      const parts = [];
-      if (act._stopName) parts.push(act._stopType === 'corridor' ? '🛤️ ' + act._stopName : '📍 ' + act._stopName);
-      if (act.cost) parts.push(act.cost);
-      if (act.address) parts.push(act.address);
-      meta.textContent = parts.join(' · ');
-      content.appendChild(meta);
-
-      if (act.description) {
-        const desc = document.createElement('div');
-        desc.className = 'trip-timeline-desc';
-        desc.textContent = act.description;
-        content.appendChild(desc);
-      }
-
-      slot.appendChild(content);
-      // Tap to reschedule (set time / date / move to anytime)
-      slot.addEventListener('click', () => editTimelineActivity(trip, act, container));
-      dayDiv.appendChild(slot);
-    });
+    timedActs.forEach(act => dayDiv.appendChild(buildActivitySlot(act, trip, container)));
 
     container.appendChild(dayDiv);
   });

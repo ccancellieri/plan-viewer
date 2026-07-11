@@ -600,6 +600,25 @@
   font-weight: 500;
 }
 
+/* Travel segment overlaps a timed activity the same day — mirrors the
+   over-scheduled day badge's red styling. */
+.trip-timeline-travel.trip-timeline-conflict {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+@media (prefers-color-scheme: dark) {
+  .trip-timeline-travel.trip-timeline-conflict {
+    background: #3d1c20;
+    color: #f5a6ad;
+  }
+}
+
+.trip-timeline-conflict-badge {
+  margin-left: 4px;
+  font-weight: 700;
+}
+
 .trip-timeline-empty {
   font-size: 13px;
   color: var(--text-secondary);
@@ -647,6 +666,23 @@
   color: var(--text);
   margin-top: 4px;
   opacity: 0.8;
+}
+
+/* "Along the way" — corridor activities grouped beneath the day's travel
+   segment instead of interleaved with its timed slots. */
+.trip-timeline-corridor-section {
+  margin: 4px 0 10px 0;
+  padding-left: 8px;
+  border-left: 2px dashed #f59e0b;
+}
+
+.trip-timeline-corridor-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 6px 0;
 }
 
 /* Layer info badge (tappable — toggles layer visibility) */
