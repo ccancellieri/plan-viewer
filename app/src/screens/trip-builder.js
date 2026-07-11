@@ -1423,6 +1423,7 @@ const screenObj = {
 
     // Init Leaflet
     const L = await loadLeaflet();
+    if (leafletMap) leafletMap.remove();
     leafletMap = L.map(mapPane, { zoomControl: true }).setView([42.5, 12.5], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',

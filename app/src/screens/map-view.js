@@ -15,6 +15,10 @@ import { providers } from '../providers/index.js';
 import { getMapLocalSources, setMapLocalSources } from '../lib/sources.js';
 import { listTrips, addStopToTrip, createTrip } from '../lib/trip.js';
 
+// Module-level so a stale instance from a previous mount can be disposed
+// before a new one is created.
+let leafletMap = null;
+
 async function loadLeaflet() {
   if (window.L) return window.L;
   const base = import.meta.env.BASE_URL;
@@ -533,7 +537,6 @@ export default {
     }
 
     // --- Rebuild content after filter change ---
-    let leafletMap = null;
     let leafletMarkers = [];
 
     function rebuildContent() {
@@ -582,6 +585,7 @@ export default {
     // --- Initialize Leaflet ---
     const L = await loadLeaflet();
 
+    if (leafletMap) leafletMap.remove();
     leafletMap = L.map(mapViewDiv).setView([center.lat, center.lng], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
