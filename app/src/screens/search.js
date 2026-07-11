@@ -452,9 +452,9 @@ export default {
         dateEnd: searchParams.dateEnd,
         createdAt: new Date().toISOString(),
       });
-      db.writeJSON('maps_registry', registry);
+      const savedRegistry = db.writeJSON('maps_registry', registry);
 
-      db.writeJSON('map_data_' + mapId, {
+      const savedData = db.writeJSON('map_data_' + mapId, {
         title: mapTitle,
         city: searchParams.city,
         centerLat: searchParams.centerLat,
@@ -464,6 +464,11 @@ export default {
         dateEnd: searchParams.dateEnd,
         activities: allActivities,
       });
+
+      if (!savedRegistry || !savedData) {
+        showToast(t('storageSaveError') || 'Could not save — storage may be full');
+        return;
+      }
 
       showToast(allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + (t('mapSaved') || 'Map saved!'));
       navigate('map-view', { mapId });

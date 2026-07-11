@@ -1036,7 +1036,7 @@ function resolveActivityRecord(trip, entry) {
   if (!mapData || !mapData.activities) return null;
   const rec = mapData.activities.find(a => a.name === entry.name);
   if (!rec) return null;
-  return { rec, save: async () => { db.writeJSON(key, mapData); } };
+  return { rec, save: async () => db.writeJSON(key, mapData) };
 }
 
 async function editTimelineActivity(trip, entry, container) {
@@ -1070,7 +1070,10 @@ async function editTimelineActivity(trip, entry, container) {
     rec.date = null;
   }
 
-  await save();
+  const saved = await save();
+  if (saved === false) {
+    showToast(t('storageSaveError') || 'Could not save — storage may be full');
+  }
   renderTripTimeline(container, currentTrip || trip);
 }
 
