@@ -20,7 +20,14 @@ export async function estimateTravelTime(fromLat, fromLng, toLat, toLng, mode = 
 
   try {
     const url = `${OSRM_BASE}/route/v1/${osrmProfile}/${fromLng},${fromLat};${toLng},${toLat}?overview=false`;
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    let res;
+    try {
+      res = await fetch(url, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (res.ok) {
       const data = await res.json();
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {

@@ -1,7 +1,7 @@
 // Copyright 2026 Carlo Cancellieri
 // All rights reserved. Proprietary license.
 
-const CACHE_NAME = 'planner-v24';
+const CACHE_NAME = 'planner-v25';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -38,6 +38,21 @@ self.addEventListener('fetch', (event) => {
 
   // Network-first for HTML (index.html changes on every deploy)
   if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Network-first for remotely-configurable JSON (questionnaire/sources)
+  // so a Settings reload actually picks up server-side changes.
+  if (url.pathname.endsWith('questionnaire.json') || url.pathname.endsWith('sources.json')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {

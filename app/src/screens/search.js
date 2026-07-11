@@ -354,7 +354,10 @@ function renderResults(container, params) {
       const existingNames = new Set((existing.activities || []).map((a) => a.name));
       const newOnes = allActivities.filter((a) => !existingNames.has(a.name));
       existing.activities = (existing.activities || []).concat(newOnes);
-      db.writeJSON('map_data_' + params.mergeMapId, existing);
+      if (!db.writeJSON('map_data_' + params.mergeMapId, existing)) {
+        showToast(t('storageSaveError') || 'Could not save — storage may be full');
+        return;
+      }
       showToast(newOnes.length + ' ' + (t('addToMapDone') || 'events added to map'));
       navigate('map-view', { mapId: params.mergeMapId });
     });
@@ -381,9 +384,9 @@ function renderResults(container, params) {
         dateEnd: params.dateEnd,
         createdAt: new Date().toISOString(),
       });
-      db.writeJSON('maps_registry', registry);
+      const savedRegistry = db.writeJSON('maps_registry', registry);
 
-      db.writeJSON('map_data_' + mapId, {
+      const savedData = db.writeJSON('map_data_' + mapId, {
         title: mapName,
         city: params.city,
         centerLat: params.centerLat,
@@ -392,6 +395,11 @@ function renderResults(container, params) {
         dateEnd: params.dateEnd,
         activities: allActivities,
       });
+
+      if (!savedRegistry || !savedData) {
+        showToast(t('storageSaveError') || 'Could not save — storage may be full');
+        return;
+      }
 
       showToast(t('mapSaved') || 'Map saved!');
       navigate('map-view', { mapId });
@@ -433,7 +441,10 @@ export default {
           const existingNames = new Set((existing.activities || []).map((a) => a.name));
           const newOnes = allActivities.filter((a) => !existingNames.has(a.name));
           existing.activities = (existing.activities || []).concat(newOnes);
-          db.writeJSON('map_data_' + searchParams.mergeMapId, existing);
+          if (!db.writeJSON('map_data_' + searchParams.mergeMapId, existing)) {
+            showToast(t('storageSaveError') || 'Could not save — storage may be full');
+            return;
+          }
           showToast(newOnes.length + ' ' + (t('addToMapDone') || 'events added to map'));
           navigate('map-view', { mapId: searchParams.mergeMapId });
           return;
@@ -452,9 +463,9 @@ export default {
         dateEnd: searchParams.dateEnd,
         createdAt: new Date().toISOString(),
       });
-      db.writeJSON('maps_registry', registry);
+      const savedRegistry = db.writeJSON('maps_registry', registry);
 
-      db.writeJSON('map_data_' + mapId, {
+      const savedData = db.writeJSON('map_data_' + mapId, {
         title: mapTitle,
         city: searchParams.city,
         centerLat: searchParams.centerLat,
@@ -464,6 +475,11 @@ export default {
         dateEnd: searchParams.dateEnd,
         activities: allActivities,
       });
+
+      if (!savedRegistry || !savedData) {
+        showToast(t('storageSaveError') || 'Could not save — storage may be full');
+        return;
+      }
 
       showToast(allActivities.length + ' ' + (t('activities') || 'activities') + ' — ' + (t('mapSaved') || 'Map saved!'));
       navigate('map-view', { mapId });

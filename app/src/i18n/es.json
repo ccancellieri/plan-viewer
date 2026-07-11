@@ -253,5 +253,6 @@
   "copySuffix": "copia",
   "tripDuplicated": "Viaje duplicado",
   "questionnaireSrc": "Fuente Cuestionario",
-  "questionnaireSrcMsg": "URL para questionnaire.json (dejar vacío para el predeterminado)"
+  "questionnaireSrcMsg": "URL para questionnaire.json (dejar vacío para el predeterminado)",
+  "storageSaveError": "No se pudo guardar — el almacenamiento podría estar lleno"
 }

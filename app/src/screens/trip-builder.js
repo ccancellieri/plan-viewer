@@ -77,7 +77,9 @@ function renderTripOnMap(trip, L) {
             iconAnchor: [16, 16],
           }),
         }).addTo(leafletMap);
-        marker.bindPopup('<strong>' + (mapData.title || stop.mapId) + '</strong>');
+        const popupEl = document.createElement('strong');
+        popupEl.textContent = mapData.title || stop.mapId;
+        marker.bindPopup(popupEl);
         mapLayers.stops.push(marker);
       }
     } else if (stop.type === 'corridor' && stop.path && stop.path.length > 1) {
@@ -111,7 +113,13 @@ function renderTripOnMap(trip, L) {
             const m = L.circleMarker([act.lat, act.lng], {
               radius: 6, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.8, weight: 1,
             }).addTo(leafletMap);
-            m.bindPopup('<strong>' + (act.name || '') + '</strong><br>' + (act.description || ''));
+            const popupEl = document.createElement('div');
+            const popupName = document.createElement('strong');
+            popupName.textContent = act.name || '';
+            popupEl.appendChild(popupName);
+            popupEl.appendChild(document.createElement('br'));
+            popupEl.appendChild(document.createTextNode(act.description || ''));
+            m.bindPopup(popupEl);
             mapLayers.corridors.push(m);
           }
         }
@@ -124,7 +132,9 @@ function renderTripOnMap(trip, L) {
             radius: (zone.radius || 10) * 1000,
             color: '#ec4899', fillColor: '#ec4899', fillOpacity: 0.08, weight: 2, dashArray: '2 6',
           }).addTo(leafletMap);
-          circle.bindPopup('<strong>' + (zone.keyword || '') + '</strong>');
+          const popupEl = document.createElement('strong');
+          popupEl.textContent = zone.keyword || '';
+          circle.bindPopup(popupEl);
           mapLayers.corridors.push(circle);
         }
       }
@@ -361,15 +371,23 @@ function renderStopList(trip, sheet, el) {
         } else {
           travelDiv.textContent = '\u23F3'; // hourglass
           // Async compute
-          computeTravelTime(stop, nextMapStop).then(result => {
-            if (result) {
-              stop.travelTimeToNext = result.durationMin;
-              stop.travelDistanceToNext = result.distanceKm;
-              travelDiv.textContent = formatDuration(result.durationMin) + ' \u2022 ' + result.distanceKm + ' km';
-              if (result.source === 'estimate') travelDiv.textContent += ' ~';
-              // Persist
-              updateTrip(trip.id, { stops: trip.stops });
+          computeTravelTime(stop, nextMapStop).then(async result => {
+            if (!result) return;
+            // Re-read the trip fresh so we don't clobber concurrent edits
+            // (e.g. a stop deleted while this request was in flight) with
+            // this render's stale stops snapshot.
+            const fresh = await getTrip(trip.id);
+            if (!fresh) return;
+            let target = fresh.stops[idx];
+            if (!target || target.type !== 'map' || target.mapId !== stop.mapId) {
+              target = fresh.stops.find(s => s.type === 'map' && s.mapId === stop.mapId);
             }
+            if (!target) return; // stop no longer exists \u2014 do nothing
+            target.travelTimeToNext = result.durationMin;
+            target.travelDistanceToNext = result.distanceKm;
+            travelDiv.textContent = formatDuration(result.durationMin) + ' \u2022 ' + result.distanceKm + ' km';
+            if (result.source === 'estimate') travelDiv.textContent += ' ~';
+            currentTrip = await updateTrip(fresh.id, { stops: fresh.stops });
           });
         }
       }
@@ -889,6 +907,14 @@ async function startCorridorSearch(trip, corridorIdx, sheet, el) {
 
 // ── Timeline computation ─────────────────────────────────────────────
 
+// Local-date key (YYYY-MM-DD) for a Date built from local-midnight values.
+// toISOString() converts to UTC first, which shifts the day backwards in
+// any timezone ahead of UTC — this keeps the key aligned with the local
+// calendar day the Date object represents.
+function localDateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function computeTripTimeline(trip) {
   if (!trip || !trip.stops || trip.stops.length === 0) return { days: [], anytime: [] };
 
@@ -941,7 +967,7 @@ function computeTripTimeline(trip) {
     const start = new Date(dateStart + 'T00:00:00');
     const end = new Date(dateEnd + 'T00:00:00');
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().slice(0, 10);
+      const key = localDateKey(d);
       if (!byDate[key]) byDate[key] = [];
       if (!dayKeys.includes(key)) dayKeys.push(key);
     }
@@ -965,6 +991,9 @@ function computeTripTimeline(trip) {
           modeIcon: mode.icon,
           modeId: mode.id,
           afterStopIdx: idx,
+          // Which day this segment is rendered under — the departing
+          // stop's own dates, falling back to the trip's first day.
+          date: stop.departureDate || stop.arrivalDate || dayKeys[0] || null,
         });
       }
     }
@@ -1007,7 +1036,7 @@ function resolveActivityRecord(trip, entry) {
   if (!mapData || !mapData.activities) return null;
   const rec = mapData.activities.find(a => a.name === entry.name);
   if (!rec) return null;
-  return { rec, save: async () => { db.writeJSON(key, mapData); } };
+  return { rec, save: async () => db.writeJSON(key, mapData) };
 }
 
 async function editTimelineActivity(trip, entry, container) {
@@ -1041,7 +1070,10 @@ async function editTimelineActivity(trip, entry, container) {
     rec.date = null;
   }
 
-  await save();
+  const saved = await save();
+  if (saved === false) {
+    showToast(t('storageSaveError') || 'Could not save — storage may be full');
+  }
   renderTripTimeline(container, currentTrip || trip);
 }
 
@@ -1082,8 +1114,8 @@ function renderTripTimeline(container, trip) {
     }
     dayDiv.appendChild(h2);
 
-    // Check for travel segments that might occur on this day
-    travelSegments.forEach(seg => {
+    // Render each travel segment under the single day it belongs to
+    travelSegments.filter(seg => seg.date === day.date).forEach(seg => {
       const travelEl = document.createElement('div');
       travelEl.className = 'trip-timeline-travel';
       travelEl.textContent = seg.modeIcon + ' ' + seg.fromName + ' → ' + seg.toName +
@@ -1394,6 +1426,7 @@ const screenObj = {
 
     // Init Leaflet
     const L = await loadLeaflet();
+    if (leafletMap) leafletMap.remove();
     leafletMap = L.map(mapPane, { zoomControl: true }).setView([42.5, 12.5], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',

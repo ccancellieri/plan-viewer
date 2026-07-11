@@ -254,5 +254,6 @@
   "copySuffix": "copy",
   "tripDuplicated": "Trip duplicated",
   "questionnaireSrc": "Questionnaire Source",
-  "questionnaireSrcMsg": "URL for questionnaire.json (leave empty for default)"
+  "questionnaireSrcMsg": "URL for questionnaire.json (leave empty for default)",
+  "storageSaveError": "Could not save — storage may be full"
 }

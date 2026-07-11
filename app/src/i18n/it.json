@@ -253,5 +253,6 @@
   "copySuffix": "copia",
   "tripDuplicated": "Viaggio duplicato",
   "questionnaireSrc": "Fonte Questionario",
-  "questionnaireSrcMsg": "URL per questionnaire.json (lascia vuoto per il default)"
+  "questionnaireSrcMsg": "URL per questionnaire.json (lascia vuoto per il default)",
+  "storageSaveError": "Salvataggio non riuscito — la memoria potrebbe essere piena"
 }

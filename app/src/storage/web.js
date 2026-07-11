@@ -14,7 +14,13 @@ export default {
   },
 
   writeJSON(key, data) {
-    localStorage.setItem(PREFIX + key, JSON.stringify(data));
+    try {
+      localStorage.setItem(PREFIX + key, JSON.stringify(data));
+      return true;
+    } catch (err) {
+      console.error('writeJSON failed for key', key, err);
+      return false;
+    }
   },
 
   remove(key) {
