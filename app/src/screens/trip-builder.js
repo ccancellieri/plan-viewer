@@ -77,7 +77,9 @@ function renderTripOnMap(trip, L) {
             iconAnchor: [16, 16],
           }),
         }).addTo(leafletMap);
-        marker.bindPopup('<strong>' + (mapData.title || stop.mapId) + '</strong>');
+        const popupEl = document.createElement('strong');
+        popupEl.textContent = mapData.title || stop.mapId;
+        marker.bindPopup(popupEl);
         mapLayers.stops.push(marker);
       }
     } else if (stop.type === 'corridor' && stop.path && stop.path.length > 1) {
@@ -111,7 +113,13 @@ function renderTripOnMap(trip, L) {
             const m = L.circleMarker([act.lat, act.lng], {
               radius: 6, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.8, weight: 1,
             }).addTo(leafletMap);
-            m.bindPopup('<strong>' + (act.name || '') + '</strong><br>' + (act.description || ''));
+            const popupEl = document.createElement('div');
+            const popupName = document.createElement('strong');
+            popupName.textContent = act.name || '';
+            popupEl.appendChild(popupName);
+            popupEl.appendChild(document.createElement('br'));
+            popupEl.appendChild(document.createTextNode(act.description || ''));
+            m.bindPopup(popupEl);
             mapLayers.corridors.push(m);
           }
         }
@@ -124,7 +132,9 @@ function renderTripOnMap(trip, L) {
             radius: (zone.radius || 10) * 1000,
             color: '#ec4899', fillColor: '#ec4899', fillOpacity: 0.08, weight: 2, dashArray: '2 6',
           }).addTo(leafletMap);
-          circle.bindPopup('<strong>' + (zone.keyword || '') + '</strong>');
+          const popupEl = document.createElement('strong');
+          popupEl.textContent = zone.keyword || '';
+          circle.bindPopup(popupEl);
           mapLayers.corridors.push(circle);
         }
       }
