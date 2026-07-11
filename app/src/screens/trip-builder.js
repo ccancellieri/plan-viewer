@@ -907,6 +907,14 @@ async function startCorridorSearch(trip, corridorIdx, sheet, el) {
 
 // ── Timeline computation ─────────────────────────────────────────────
 
+// Local-date key (YYYY-MM-DD) for a Date built from local-midnight values.
+// toISOString() converts to UTC first, which shifts the day backwards in
+// any timezone ahead of UTC — this keeps the key aligned with the local
+// calendar day the Date object represents.
+function localDateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function computeTripTimeline(trip) {
   if (!trip || !trip.stops || trip.stops.length === 0) return { days: [], anytime: [] };
 
@@ -959,7 +967,7 @@ function computeTripTimeline(trip) {
     const start = new Date(dateStart + 'T00:00:00');
     const end = new Date(dateEnd + 'T00:00:00');
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().slice(0, 10);
+      const key = localDateKey(d);
       if (!byDate[key]) byDate[key] = [];
       if (!dayKeys.includes(key)) dayKeys.push(key);
     }
@@ -983,6 +991,9 @@ function computeTripTimeline(trip) {
           modeIcon: mode.icon,
           modeId: mode.id,
           afterStopIdx: idx,
+          // Which day this segment is rendered under — the departing
+          // stop's own dates, falling back to the trip's first day.
+          date: stop.departureDate || stop.arrivalDate || dayKeys[0] || null,
         });
       }
     }
@@ -1100,8 +1111,8 @@ function renderTripTimeline(container, trip) {
     }
     dayDiv.appendChild(h2);
 
-    // Check for travel segments that might occur on this day
-    travelSegments.forEach(seg => {
+    // Render each travel segment under the single day it belongs to
+    travelSegments.filter(seg => seg.date === day.date).forEach(seg => {
       const travelEl = document.createElement('div');
       travelEl.className = 'trip-timeline-travel';
       travelEl.textContent = seg.modeIcon + ' ' + seg.fromName + ' → ' + seg.toName +
