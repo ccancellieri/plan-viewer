@@ -6,7 +6,7 @@ import { actionSheet, prompt as modalPrompt, confirm } from '../ui/modal.js';
 import { showToast } from '../ui/toast.js';
 import { corridorPolygon, pathLength } from '../lib/corridor.js';
 import { estimateTravelTime } from '../lib/osrm.js';
-import { buildCorridorPrompt } from '../lib/prompt.js';
+import { buildCorridorPrompt, buildFocusZonePrompt } from '../lib/prompt.js';
 import { callLLM, providers } from '../providers/index.js';
 import { parseActivities } from '../lib/parser.js';
 import { sampleCorridorSegments } from '../lib/corridor.js';
