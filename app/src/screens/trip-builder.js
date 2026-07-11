@@ -2,7 +2,7 @@ import { t } from '../i18n/index.js';
 import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { createTrip, getTrip, updateTrip, addStopToTrip, removeStop, reorderStops, splitCorridor } from '../lib/trip.js';
-import { actionSheet, prompt as modalPrompt, confirm } from '../ui/modal.js';
+import { actionSheet, prompt as modalPrompt, confirm, alert as modalAlert, textareaPrompt } from '../ui/modal.js';
 import { showToast } from '../ui/toast.js';
 import { corridorPolygon, pathLength } from '../lib/corridor.js';
 import { estimateTravelTime } from '../lib/osrm.js';
@@ -446,6 +446,29 @@ function formatDuration(minutes) {
   return h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
 }
 
+/**
+ * Invoke a provider, handling manual mode in the UI (same flow as the city
+ * search screen): copy the prompt, let the user paste the AI's JSON reply.
+ * Returns null when the user cancels the manual paste.
+ */
+async function callProvider(provider, apiKey, systemPrompt, userPrompt) {
+  if (provider.id !== 'manual') {
+    return callLLM(provider.id, apiKey, systemPrompt, userPrompt);
+  }
+  const fullPrompt = systemPrompt + '\n\n' + userPrompt;
+  try { await navigator.clipboard.writeText(fullPrompt); } catch { /* clipboard unavailable */ }
+  await modalAlert(
+    t('manualTitle') || 'Manual Mode',
+    t('manualMsg') || 'The prompt has been copied to your clipboard.\n\n1. Open any AI chat\n2. Paste the prompt\n3. Copy the JSON response\n4. Come back and paste it'
+  );
+  const response = await textareaPrompt(
+    t('manualPaste') || 'Paste Response',
+    t('manualPasteMsg') || 'Paste the JSON response from the AI:',
+    '[{"name": "...", "category": "...", ...}]'
+  );
+  return response || null;
+}
+
 // ── Stop & corridor editing ─────────────────────────────────────────
 
 function isLayerVisible(act) {
@@ -625,7 +648,8 @@ async function runFocusZoneSearch(trip, corridorIdx, zone, sheet, el) {
       trip.dateStart, trip.dateEnd, getTripProfile(trip),
     );
 
-    const response = await callLLM(provider.id, apiKey, systemPrompt, userPrompt);
+    const response = await callProvider(provider, apiKey, systemPrompt, userPrompt);
+    if (response == null) return; // manual mode cancelled
     const activities = parseActivities(response, trip.dateStart, trip.dateEnd);
     const existingNames = new Set((corridor.activities || []).map(a => a.name));
     const fresh = activities.filter(a => !existingNames.has(a.name));
@@ -833,7 +857,8 @@ async function startCorridorSearch(trip, corridorIdx, sheet, el) {
       );
 
       try {
-        const response = await callLLM(provider.id, apiKey, systemPrompt, userPrompt);
+        const response = await callProvider(provider, apiKey, systemPrompt, userPrompt);
+        if (response == null) break; // manual mode cancelled
         const activities = parseActivities(response, trip.dateStart, trip.dateEnd);
         for (const act of activities) {
           if (!existingNames.has(act.name)) {
@@ -1226,8 +1251,9 @@ async function rerunTripSearches(trip, sheet, el) {
   sheet.appendChild(progressDiv);
 
   let totalNew = 0;
+  let cancelled = false;
 
-  for (let i = 0; i < trip.stops.length; i++) {
+  for (let i = 0; i < trip.stops.length && !cancelled; i++) {
     const stop = trip.stops[i];
 
     if (stop.type === 'corridor' && stop.path && stop.path.length >= 2) {
@@ -1251,7 +1277,8 @@ async function rerunTripSearches(trip, sheet, el) {
         );
 
         try {
-          const response = await callLLM(provider.id, apiKey, systemPrompt, userPrompt);
+          const response = await callProvider(provider, apiKey, systemPrompt, userPrompt);
+          if (response == null) { cancelled = true; break; } // manual mode cancelled
           const activities = parseActivities(response, trip.dateStart, trip.dateEnd);
           for (const act of activities) {
             if (!existingNames.has(act.name)) {
