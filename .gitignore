@@ -8,3 +8,5 @@ app/android/
 app/assets/
 .DS_Store
 .claude/
+*.log
+.memory/
