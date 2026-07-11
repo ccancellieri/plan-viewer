@@ -2,11 +2,11 @@ import { t } from '../i18n/index.js';
 import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { createTrip, getTrip, updateTrip, addStopToTrip, removeStop, reorderStops, splitCorridor } from '../lib/trip.js';
-import { actionSheet, prompt as modalPrompt, confirm } from '../ui/modal.js';
+import { actionSheet, prompt as modalPrompt, confirm, alert as modalAlert, textareaPrompt } from '../ui/modal.js';
 import { showToast } from '../ui/toast.js';
 import { corridorPolygon, pathLength } from '../lib/corridor.js';
 import { estimateTravelTime } from '../lib/osrm.js';
-import { buildCorridorPrompt } from '../lib/prompt.js';
+import { buildCorridorPrompt, buildFocusZonePrompt } from '../lib/prompt.js';
 import { callLLM, providers } from '../providers/index.js';
 import { parseActivities } from '../lib/parser.js';
 import { sampleCorridorSegments } from '../lib/corridor.js';
@@ -24,6 +24,9 @@ let leafletMap = null;
 let mapLayers = { stops: [], corridors: [] };
 let currentTrip = null;
 let activeTab = 'map'; // 'map' | 'timeline'
+// View-only visibility state for temporal layers ('base' = activities
+// found before the first re-run). Reset on every mount.
+let hiddenLayerIds = new Set();
 
 async function loadLeaflet() {
   if (window.L) return window.L;
@@ -101,16 +104,28 @@ function renderTripOnMap(trip, L) {
       }).addTo(leafletMap);
       mapLayers.corridors.push(line);
 
-      // Render corridor activities as markers
+      // Render corridor activities as markers (visible layers only)
       if (stop.activities && stop.activities.length > 0) {
         for (const act of stop.activities) {
-          if (act.lat != null && act.lng != null) {
+          if (act.lat != null && act.lng != null && isLayerVisible(act)) {
             const m = L.circleMarker([act.lat, act.lng], {
               radius: 6, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.8, weight: 1,
             }).addTo(leafletMap);
             m.bindPopup('<strong>' + (act.name || '') + '</strong><br>' + (act.description || ''));
             mapLayers.corridors.push(m);
           }
+        }
+      }
+
+      // Render focus zones as circles
+      if (stop.focusZones && stop.focusZones.length > 0) {
+        for (const zone of stop.focusZones) {
+          const circle = L.circle([zone.lat, zone.lng], {
+            radius: (zone.radius || 10) * 1000,
+            color: '#ec4899', fillColor: '#ec4899', fillOpacity: 0.08, weight: 2, dashArray: '2 6',
+          }).addTo(leafletMap);
+          circle.bindPopup('<strong>' + (zone.keyword || '') + '</strong>');
+          mapLayers.corridors.push(circle);
         }
       }
     }
@@ -196,6 +211,19 @@ function renderStopList(trip, sheet, el) {
         info.appendChild(dur);
       }
 
+      if (stop.arrivalDate || stop.departureDate) {
+        const dates = document.createElement('span');
+        dates.className = 'text-secondary text-sm';
+        dates.textContent = (stop.arrivalDate || '?') + ' → ' + (stop.departureDate || '?');
+        info.appendChild(dates);
+      }
+
+      // Tap the stop info to edit stay duration and dates
+      info.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editStopDetails(trip, idx, sheet, el);
+      });
+
       item.appendChild(icon);
       item.appendChild(info);
     } else if (stop.type === 'corridor') {
@@ -221,6 +249,19 @@ function renderStopList(trip, sheet, el) {
         actCount.textContent = stop.activities.length + ' ' + (t('activities') || 'activities');
         info.appendChild(actCount);
       }
+
+      if (stop.focusZones && stop.focusZones.length > 0) {
+        const fzCount = document.createElement('span');
+        fzCount.className = 'text-secondary text-sm';
+        fzCount.textContent = '🎯 ' + stop.focusZones.length + ' ' + (t('focusZones') || 'focus zones');
+        info.appendChild(fzCount);
+      }
+
+      // Tap the corridor info to adjust width or manage focus zones
+      info.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editCorridor(trip, idx, sheet, el);
+      });
 
       item.appendChild(icon);
       item.appendChild(info);
@@ -266,6 +307,33 @@ function renderStopList(trip, sheet, el) {
         }
       });
       item.appendChild(modeBtn);
+    }
+
+    // Reorder buttons (\u25B2\u25BC)
+    if (trip.stops.length > 1) {
+      const reorder = document.createElement('div');
+      reorder.className = 'trip-reorder';
+      const upBtn = document.createElement('button');
+      upBtn.className = 'btn-icon trip-reorder-btn';
+      upBtn.textContent = '\u25B2';
+      upBtn.disabled = idx === 0;
+      upBtn.title = t('moveUp') || 'Move up';
+      upBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        moveStop(trip, idx, -1, sheet, el);
+      });
+      const downBtn = document.createElement('button');
+      downBtn.className = 'btn-icon trip-reorder-btn';
+      downBtn.textContent = '\u25BC';
+      downBtn.disabled = idx === trip.stops.length - 1;
+      downBtn.title = t('moveDown') || 'Move down';
+      downBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        moveStop(trip, idx, 1, sheet, el);
+      });
+      reorder.appendChild(upBtn);
+      reorder.appendChild(downBtn);
+      item.appendChild(reorder);
     }
 
     // Delete button
@@ -349,12 +417,15 @@ function renderStopList(trip, sheet, el) {
   refreshBtn.addEventListener('click', () => rerunTripSearches(trip, sheet, el));
   actions.appendChild(refreshBtn);
 
-  // Layer indicator
+  // Layer indicator — tap to toggle layer visibility
   if (trip.layers && trip.layers.length > 0) {
-    const layerInfo = document.createElement('div');
+    const layerInfo = document.createElement('button');
     layerInfo.className = 'trip-layer-info';
-    layerInfo.textContent = (t('layers') || 'Layers') + ': ' + trip.layers.length;
+    const hiddenCount = hiddenLayerIds.size;
+    layerInfo.textContent = '👁 ' + (t('layers') || 'Layers') + ': ' + trip.layers.length +
+      (hiddenCount > 0 ? ' (' + hiddenCount + ' ' + (t('hidden') || 'hidden') + ')' : '');
     layerInfo.title = trip.layers.map(l => l.label || l.date).join(', ');
+    layerInfo.addEventListener('click', () => showLayerToggle(trip, sheet, el));
     actions.appendChild(layerInfo);
   }
 
@@ -373,6 +444,265 @@ function formatDuration(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
+}
+
+/**
+ * Invoke a provider, handling manual mode in the UI (same flow as the city
+ * search screen): copy the prompt, let the user paste the AI's JSON reply.
+ * Returns null when the user cancels the manual paste.
+ */
+async function callProvider(provider, apiKey, systemPrompt, userPrompt) {
+  if (provider.id !== 'manual') {
+    return callLLM(provider.id, apiKey, systemPrompt, userPrompt);
+  }
+  const fullPrompt = systemPrompt + '\n\n' + userPrompt;
+  try { await navigator.clipboard.writeText(fullPrompt); } catch { /* clipboard unavailable */ }
+  await modalAlert(
+    t('manualTitle') || 'Manual Mode',
+    t('manualMsg') || 'The prompt has been copied to your clipboard.\n\n1. Open any AI chat\n2. Paste the prompt\n3. Copy the JSON response\n4. Come back and paste it'
+  );
+  const response = await textareaPrompt(
+    t('manualPaste') || 'Paste Response',
+    t('manualPasteMsg') || 'Paste the JSON response from the AI:',
+    '[{"name": "...", "category": "...", ...}]'
+  );
+  return response || null;
+}
+
+// ── Stop & corridor editing ─────────────────────────────────────────
+
+function isLayerVisible(act) {
+  return !hiddenLayerIds.has(act._layerId || 'base');
+}
+
+// Questionnaire profile for this trip: the snapshot stored on the trip,
+// falling back to the profile last saved by the questionnaire screen.
+function getTripProfile(trip) {
+  return trip.profile || db.readJSON('search_profile', null) || null;
+}
+
+/**
+ * Prompt for a date. Returns 'YYYY-MM-DD', null when cleared,
+ * or undefined when cancelled / invalid (caller should abort).
+ */
+async function promptDate(title, current) {
+  const val = await modalPrompt(title, 'YYYY-MM-DD', current || '');
+  if (val === null) return undefined;
+  const s = val.trim();
+  if (s === '') return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || isNaN(new Date(s + 'T00:00:00').getTime())) {
+    showToast(t('invalidDate') || 'Invalid date — use YYYY-MM-DD');
+    return undefined;
+  }
+  return s;
+}
+
+async function editStopDetails(trip, idx, sheet, el) {
+  const stop = trip.stops[idx];
+  if (!stop || stop.type !== 'map') return;
+  const options = [
+    '🕐 ' + (t('stayDuration') || 'Stay Duration') + ': ' + (stop.stayDuration ? stop.stayDuration + 'h' : '—'),
+    '📅 ' + (t('arrivalDate') || 'Arrival') + ': ' + (stop.arrivalDate || '—'),
+    '📅 ' + (t('departureDate') || 'Departure') + ': ' + (stop.departureDate || '—'),
+  ];
+  const choice = await actionSheet(t('editStop') || 'Edit Stop', options);
+  if (choice === null || choice < 0) return;
+
+  if (choice === 0) {
+    const val = await modalPrompt(
+      t('stayDuration') || 'Stay Duration',
+      t('stayDurationMsg') || 'Hours at this stop (e.g. 24)',
+      stop.stayDuration != null ? String(stop.stayDuration) : ''
+    );
+    if (val === null) return;
+    const num = parseFloat(val);
+    stop.stayDuration = val.trim() === '' || isNaN(num) || num <= 0 ? null : num;
+  } else if (choice === 1) {
+    const d = await promptDate(t('arrivalDate') || 'Arrival date', stop.arrivalDate);
+    if (d === undefined) return;
+    stop.arrivalDate = d;
+  } else if (choice === 2) {
+    const d = await promptDate(t('departureDate') || 'Departure date', stop.departureDate);
+    if (d === undefined) return;
+    stop.departureDate = d;
+  }
+
+  currentTrip = await updateTrip(trip.id, { stops: trip.stops });
+  renderStopList(currentTrip, sheet, el);
+}
+
+async function editCorridor(trip, idx, sheet, el) {
+  const stop = trip.stops[idx];
+  if (!stop || stop.type !== 'corridor') return;
+  const options = [
+    '↔️ ' + (t('adjustWidth') || 'Adjust width') + ' (' + (stop.width ? stop.width.toFixed(0) : '?') + ' km)',
+    '🎯 ' + (t('addFocusZone') || 'Add focus zone'),
+  ];
+  const zones = stop.focusZones || [];
+  zones.forEach(z => {
+    options.push('✕ 🎯 ' + (z.keyword || '') + ' (' + (z.radius || 10) + ' km)');
+  });
+  const choice = await actionSheet(t('drawCorridor') || 'Route', options);
+  if (choice === null || choice < 0) return;
+
+  if (choice === 0) {
+    const val = await modalPrompt(
+      t('adjustWidth') || 'Adjust width',
+      t('widthMsg') || 'Corridor width in km (10-100)',
+      stop.width ? String(Math.round(stop.width)) : ''
+    );
+    if (val === null) return;
+    const num = parseFloat(val);
+    if (isNaN(num) || num <= 0) {
+      showToast(t('invalidWidth') || 'Invalid width');
+      return;
+    }
+    stop.width = Math.max(5, Math.min(num, 200));
+    currentTrip = await updateTrip(trip.id, { stops: trip.stops });
+    renderStopList(currentTrip, sheet, el);
+    if (leafletMap) renderTripOnMap(currentTrip, window.L);
+  } else if (choice === 1) {
+    addFocusZone(trip, idx, sheet, el);
+  } else {
+    // Remove the selected focus zone
+    const zoneIdx = choice - 2;
+    zones.splice(zoneIdx, 1);
+    stop.focusZones = zones;
+    currentTrip = await updateTrip(trip.id, { stops: trip.stops });
+    renderStopList(currentTrip, sheet, el);
+    if (leafletMap) renderTripOnMap(currentTrip, window.L);
+  }
+}
+
+async function addFocusZone(trip, corridorIdx, sheet, el) {
+  if (!leafletMap) return;
+  showToast(t('focusZoneHint') || 'Tap a point on the map');
+  const mapDiv = leafletMap.getContainer();
+  mapDiv.classList.add('drawing-mode');
+
+  leafletMap.once('click', async (e) => {
+    mapDiv.classList.remove('drawing-mode');
+    const { lat, lng } = e.latlng;
+
+    const keyword = await modalPrompt(
+      t('addFocusZone') || 'Add focus zone',
+      t('focusKeywordMsg') || 'What to look for (e.g. thermal baths)',
+      ''
+    );
+    if (keyword === null || !keyword.trim()) return;
+
+    const radiusVal = await modalPrompt(
+      t('focusRadiusMsg') || 'Search radius in km',
+      t('focusRadiusMsg') || 'Search radius in km',
+      '10'
+    );
+    if (radiusVal === null) return;
+    const radius = Math.max(1, Math.min(parseFloat(radiusVal) || 10, 100));
+
+    const stop = trip.stops[corridorIdx];
+    if (!stop.focusZones) stop.focusZones = [];
+    const zone = { lat, lng, radius, keyword: keyword.trim() };
+    stop.focusZones.push(zone);
+    currentTrip = await updateTrip(trip.id, { stops: trip.stops });
+    renderStopList(currentTrip, sheet, el);
+    renderTripOnMap(currentTrip, window.L);
+
+    const runNow = await confirm(
+      t('addFocusZone') || 'Focus zone',
+      t('runSearchNow') || 'Search this zone now?'
+    );
+    if (runNow) {
+      runFocusZoneSearch(currentTrip, corridorIdx, zone, sheet, el);
+    }
+  });
+}
+
+async function runFocusZoneSearch(trip, corridorIdx, zone, sheet, el) {
+  const corridor = trip.stops[corridorIdx];
+  if (!corridor) return;
+
+  const available = providers.filter(p => p.id === 'manual' || !!db.readJSON('apikey_' + p.id));
+  if (available.length === 0) {
+    showToast(t('apiKeyNeeded') || 'Configure an API key first');
+    return;
+  }
+  const provIdx = await actionSheet(t('provider') || 'AI Provider', available.map(p => p.label));
+  if (provIdx === null || provIdx < 0) return;
+  const provider = available[provIdx];
+  const apiKey = db.readJSON('apikey_' + provider.id, '');
+
+  const progressDiv = document.createElement('div');
+  progressDiv.className = 'corridor-search-progress';
+  progressDiv.textContent = (t('searching') || 'Searching...') + ' 🎯 ' + zone.keyword;
+  sheet.appendChild(progressDiv);
+
+  try {
+    let areaName = 'area';
+    try {
+      const geo = await reverseGeocode(zone.lat, zone.lng);
+      if (geo) areaName = geo.shortName || geo.city || 'area';
+    } catch { /* use default */ }
+
+    const { systemPrompt, userPrompt } = buildFocusZonePrompt(
+      areaName, zone.lat, zone.lng, zone.radius, zone.keyword,
+      trip.dateStart, trip.dateEnd, getTripProfile(trip),
+    );
+
+    const response = await callProvider(provider, apiKey, systemPrompt, userPrompt);
+    if (response == null) return; // manual mode cancelled
+    const activities = parseActivities(response, trip.dateStart, trip.dateEnd);
+    const existingNames = new Set((corridor.activities || []).map(a => a.name));
+    const fresh = activities.filter(a => !existingNames.has(a.name));
+
+    if (fresh.length > 0) {
+      corridor.activities = [...(corridor.activities || []), ...fresh];
+      currentTrip = await updateTrip(trip.id, { stops: trip.stops });
+      renderStopList(currentTrip, sheet, el);
+      if (leafletMap) renderTripOnMap(currentTrip, window.L);
+      showToast(fresh.length + ' ' + (t('activities') || 'activities') + ' ' + (t('found') || 'found'));
+    } else {
+      showToast(t('noResults') || 'No results found');
+    }
+  } catch (err) {
+    showToast((t('searchError') || 'Search failed') + ': ' + err.message);
+  } finally {
+    progressDiv.remove();
+  }
+}
+
+async function showLayerToggle(trip, sheet, el) {
+  const entries = [{ id: 'base', label: t('originalLayer') || 'Original' }];
+  trip.layers.forEach(l => entries.push({ id: l.id, label: l.label || l.date }));
+
+  const options = entries.map(e =>
+    (hiddenLayerIds.has(e.id) ? '🚫 ' : '👁 ') + e.label
+  );
+  const choice = await actionSheet(t('layers') || 'Layers', options);
+  if (choice === null || choice < 0) return;
+
+  const id = entries[choice].id;
+  if (hiddenLayerIds.has(id)) hiddenLayerIds.delete(id);
+  else hiddenLayerIds.add(id);
+
+  renderStopList(trip, sheet, el);
+  if (leafletMap) renderTripOnMap(trip, window.L);
+}
+
+async function moveStop(trip, idx, delta, sheet, el) {
+  const toIdx = idx + delta;
+  if (toIdx < 0 || toIdx >= trip.stops.length) return;
+  currentTrip = await reorderStops(trip.id, idx, toIdx);
+  if (!currentTrip) return;
+  // Cached travel times are stale after reordering — recompute lazily.
+  currentTrip.stops.forEach(s => {
+    if (s.type === 'map') {
+      s.travelTimeToNext = null;
+      s.travelDistanceToNext = null;
+    }
+  });
+  currentTrip = await updateTrip(currentTrip.id, { stops: currentTrip.stops });
+  renderStopList(currentTrip, sheet, el);
+  if (leafletMap) renderTripOnMap(currentTrip, window.L);
 }
 
 async function showAddStopMenu(trip, insertAt, sheet, el) {
@@ -523,10 +853,12 @@ async function startCorridorSearch(trip, corridorIdx, sheet, el) {
         areaName, seg.lat, seg.lng, seg.radiusKm,
         trip.dateStart, trip.dateEnd,
         [...existingNames],
+        getTripProfile(trip),
       );
 
       try {
-        const response = await callLLM(provider.id, apiKey, systemPrompt, userPrompt);
+        const response = await callProvider(provider, apiKey, systemPrompt, userPrompt);
+        if (response == null) break; // manual mode cancelled
         const activities = parseActivities(response, trip.dateStart, trip.dateEnd);
         for (const act of activities) {
           if (!existingNames.has(act.name)) {
@@ -582,6 +914,7 @@ function computeTripTimeline(trip) {
       }
     } else if (stop.type === 'corridor' && stop.activities) {
       for (const act of stop.activities) {
+        if (!isLayerVisible(act)) continue;
         const entry = { ...act, _stopIdx: idx, _stopType: 'corridor', _stopName: t('drawCorridor') || 'Route' };
         if (act.date) {
           allActivities.push(entry);
@@ -650,6 +983,66 @@ function computeTripTimeline(trip) {
   });
 
   return { days, anytime, travelSegments };
+}
+
+/**
+ * Locate the stored record behind a timeline entry so edits persist to the
+ * right place: corridor activities live on the trip, map-stop activities in
+ * the map's own data. Activities are deduplicated by name at search time,
+ * so name is the lookup key.
+ */
+function resolveActivityRecord(trip, entry) {
+  const stop = trip.stops[entry._stopIdx];
+  if (!stop) return null;
+  if (entry._stopType === 'corridor') {
+    const rec = (stop.activities || []).find(a => a.name === entry.name);
+    if (!rec) return null;
+    return {
+      rec,
+      save: async () => { currentTrip = await updateTrip(trip.id, { stops: trip.stops }); },
+    };
+  }
+  const key = 'map_data_' + stop.mapId;
+  const mapData = db.readJSON(key, null);
+  if (!mapData || !mapData.activities) return null;
+  const rec = mapData.activities.find(a => a.name === entry.name);
+  if (!rec) return null;
+  return { rec, save: async () => { db.writeJSON(key, mapData); } };
+}
+
+async function editTimelineActivity(trip, entry, container) {
+  const found = resolveActivityRecord(trip, entry);
+  if (!found) return;
+  const { rec, save } = found;
+
+  const options = [
+    '🕐 ' + (t('setTime') || 'Set time') + (rec.time_start ? ' (' + rec.time_start + ')' : ''),
+    '📅 ' + (t('setDate') || 'Set date') + (rec.date ? ' (' + rec.date + ')' : ''),
+  ];
+  if (rec.date) options.push('∞ ' + (t('moveToAnytime') || 'Move to Anytime'));
+
+  const choice = await actionSheet(rec.name || (t('activities') || 'Activity'), options);
+  if (choice === null || choice < 0) return;
+
+  if (choice === 0) {
+    const val = await modalPrompt(t('setTime') || 'Set time', 'HH:MM', rec.time_start || '');
+    if (val === null) return;
+    const s = val.trim();
+    if (s !== '' && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(s)) {
+      showToast(t('invalidTime') || 'Invalid time — use HH:MM');
+      return;
+    }
+    rec.time_start = s === '' ? null : s;
+  } else if (choice === 1) {
+    const d = await promptDate(t('setDate') || 'Set date', rec.date);
+    if (d === undefined) return;
+    rec.date = d;
+  } else {
+    rec.date = null;
+  }
+
+  await save();
+  renderTripTimeline(container, currentTrip || trip);
 }
 
 function renderTripTimeline(container, trip) {
@@ -742,6 +1135,8 @@ function renderTripTimeline(container, trip) {
       }
 
       slot.appendChild(content);
+      // Tap to reschedule (set time / date / move to anytime)
+      slot.addEventListener('click', () => editTimelineActivity(trip, act, container));
       dayDiv.appendChild(slot);
     });
 
@@ -785,6 +1180,8 @@ function renderTripTimeline(container, trip) {
       content.appendChild(meta);
 
       slot.appendChild(content);
+      // Tap to schedule (assign a date/time)
+      slot.addEventListener('click', () => editTimelineActivity(trip, act, container));
       anyDiv.appendChild(slot);
     });
 
@@ -800,6 +1197,34 @@ async function rerunTripSearches(trip, sheet, el) {
     showToast(t('apiKeyNeeded') || 'Configure an API key first');
     return;
   }
+
+  // Trips are reusable templates: offer new dates before re-running
+  const dateLabel = (trip.dateStart || '?') + ' — ' + (trip.dateEnd || '?');
+  const dateChoice = await actionSheet(t('refreshActivities') || 'Refresh', [
+    '📅 ' + (t('keepDates') || 'Keep dates') + ' (' + dateLabel + ')',
+    '🗓 ' + (t('changeDates') || 'Change dates'),
+  ]);
+  if (dateChoice === null || dateChoice < 0) return;
+  if (dateChoice === 1) {
+    const ds = await promptDate(t('startDate') || 'Start date', trip.dateStart);
+    if (ds === undefined) return;
+    const de = await promptDate(t('endDate') || 'End date', trip.dateEnd);
+    if (de === undefined) return;
+    if (ds && de && ds > de) {
+      showToast(t('invalidDateRange') || 'End date is before start date');
+      return;
+    }
+    trip.dateStart = ds;
+    trip.dateEnd = de;
+  }
+
+  // Snapshot the questionnaire profile on first re-run so the trip
+  // keeps its own search preferences from now on
+  if (!trip.profile) {
+    const saved = db.readJSON('search_profile', null);
+    if (saved && Object.keys(saved).length > 0) trip.profile = saved;
+  }
+
   const providerNames = available.map(p => p.label);
   const provIdx = await actionSheet(t('provider') || 'AI Provider', providerNames);
   if (provIdx === null || provIdx < 0) return;
@@ -813,6 +1238,12 @@ async function rerunTripSearches(trip, sheet, el) {
   if (!trip.layers) trip.layers = [];
   trip.layers.push(newLayer);
 
+  // Persist dates/profile/layer up front so they survive an interrupted run
+  currentTrip = await updateTrip(trip.id, {
+    dateStart: trip.dateStart, dateEnd: trip.dateEnd,
+    profile: trip.profile, layers: trip.layers,
+  });
+
   // Progress
   const progressDiv = document.createElement('div');
   progressDiv.className = 'corridor-search-progress';
@@ -820,8 +1251,9 @@ async function rerunTripSearches(trip, sheet, el) {
   sheet.appendChild(progressDiv);
 
   let totalNew = 0;
+  let cancelled = false;
 
-  for (let i = 0; i < trip.stops.length; i++) {
+  for (let i = 0; i < trip.stops.length && !cancelled; i++) {
     const stop = trip.stops[i];
 
     if (stop.type === 'corridor' && stop.path && stop.path.length >= 2) {
@@ -841,10 +1273,12 @@ async function rerunTripSearches(trip, sheet, el) {
         const { systemPrompt, userPrompt } = buildCorridorPrompt(
           areaName, seg.lat, seg.lng, seg.radiusKm,
           trip.dateStart, trip.dateEnd, [...existingNames],
+          getTripProfile(trip),
         );
 
         try {
-          const response = await callLLM(provider.id, apiKey, systemPrompt, userPrompt);
+          const response = await callProvider(provider, apiKey, systemPrompt, userPrompt);
+          if (response == null) { cancelled = true; break; } // manual mode cancelled
           const activities = parseActivities(response, trip.dateStart, trip.dateEnd);
           for (const act of activities) {
             if (!existingNames.has(act.name)) {
@@ -883,6 +1317,7 @@ const screenObj = {
 
     const params = arguments[1] || {};
     activeTab = 'map';
+    hiddenLayerIds = new Set();
 
     if (params.tripId) {
       currentTrip = await getTrip(params.tripId);

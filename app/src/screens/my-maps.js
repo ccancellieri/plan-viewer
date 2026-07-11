@@ -5,6 +5,7 @@ import { t } from '../i18n/index.js';
 import { db } from '../storage/index.js';
 import { navigate } from '../router.js';
 import { actionSheet, confirm, prompt } from '../ui/modal.js';
+import { showToast } from '../ui/toast.js';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -75,15 +76,16 @@ function createMapCard(map, container, el) {
         screenObj.mount(el);
       }
     } else if (idx === 2) {
-      // Export KML — delegate to export utility if available
       try {
         const { exportKml } = await import('../lib/export.js');
         const mapData = db.readJSON(`map_data_${map.id}`, null);
-        if (mapData) {
+        if (mapData && mapData.activities && mapData.activities.length > 0) {
           exportKml(mapData, map.title || map.name || 'map');
+        } else {
+          showToast(t('nothingToExport') || 'No activities to export');
         }
       } catch {
-        // export module may not support KML yet
+        showToast(t('exportFailed') || 'Export failed');
       }
     } else if (idx === 3) {
       const yes = await confirm(

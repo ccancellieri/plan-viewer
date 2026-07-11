@@ -89,10 +89,27 @@ export function buildPaginatedPrompt(city, dateStart, dateEnd, centerName, inter
 }
 
 /**
+ * Lines describing the traveler's questionnaire profile (interests, mood,
+ * budget, avoid). Accepts the summary shape saved by the questionnaire.
+ */
+function buildProfileLines(profile) {
+  if (!profile) return [];
+  const lines = [];
+  const interests = Array.isArray(profile.interests) ? profile.interests.join(', ') : profile.interests;
+  if (interests) lines.push(`Interests: ${interests}.`);
+  const mood = [].concat(profile.mood || []).join(', ');
+  if (mood) lines.push(`Mood: ${mood}.`);
+  if (profile.budget) lines.push(`Budget preference: ${profile.budget}.`);
+  if (profile.group) lines.push(`Group: ${profile.group}.`);
+  if (profile.avoid) lines.push(`Avoid: ${profile.avoid}.`);
+  return lines;
+}
+
+/**
  * Build system + user prompts for corridor (route-based) activity search.
  * Searches for activities near a specific area along a route.
  */
-export function buildCorridorPrompt(areaName, lat, lng, radiusKm, dateStart, dateEnd, excludeNames) {
+export function buildCorridorPrompt(areaName, lat, lng, radiusKm, dateStart, dateEnd, excludeNames, profile) {
   const systemPrompt = getSystemPrompt();
 
   const lines = [];
@@ -104,6 +121,8 @@ export function buildCorridorPrompt(areaName, lat, lng, radiusKm, dateStart, dat
   if (dateStart && dateEnd) {
     lines.push(`Date range: ${dateStart} to ${dateEnd}.`);
   }
+
+  lines.push(...buildProfileLines(profile));
 
   lines.push('Return at least 10 activities. The more the better.');
 
@@ -117,7 +136,7 @@ export function buildCorridorPrompt(areaName, lat, lng, radiusKm, dateStart, dat
 /**
  * Build prompt for a focus zone (drill-down search at a specific point).
  */
-export function buildFocusZonePrompt(areaName, lat, lng, radiusKm, keyword, dateStart, dateEnd) {
+export function buildFocusZonePrompt(areaName, lat, lng, radiusKm, keyword, dateStart, dateEnd, profile) {
   const systemPrompt = getSystemPrompt();
 
   const lines = [];
@@ -127,6 +146,8 @@ export function buildFocusZonePrompt(areaName, lat, lng, radiusKm, keyword, date
   if (dateStart && dateEnd) {
     lines.push(`Date range: ${dateStart} to ${dateEnd}.`);
   }
+
+  lines.push(...buildProfileLines(profile));
 
   lines.push('Return at least 10 activities. The more the better.');
 
