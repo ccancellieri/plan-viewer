@@ -371,15 +371,23 @@ function renderStopList(trip, sheet, el) {
         } else {
           travelDiv.textContent = '\u23F3'; // hourglass
           // Async compute
-          computeTravelTime(stop, nextMapStop).then(result => {
-            if (result) {
-              stop.travelTimeToNext = result.durationMin;
-              stop.travelDistanceToNext = result.distanceKm;
-              travelDiv.textContent = formatDuration(result.durationMin) + ' \u2022 ' + result.distanceKm + ' km';
-              if (result.source === 'estimate') travelDiv.textContent += ' ~';
-              // Persist
-              updateTrip(trip.id, { stops: trip.stops });
+          computeTravelTime(stop, nextMapStop).then(async result => {
+            if (!result) return;
+            // Re-read the trip fresh so we don't clobber concurrent edits
+            // (e.g. a stop deleted while this request was in flight) with
+            // this render's stale stops snapshot.
+            const fresh = await getTrip(trip.id);
+            if (!fresh) return;
+            let target = fresh.stops[idx];
+            if (!target || target.type !== 'map' || target.mapId !== stop.mapId) {
+              target = fresh.stops.find(s => s.type === 'map' && s.mapId === stop.mapId);
             }
+            if (!target) return; // stop no longer exists \u2014 do nothing
+            target.travelTimeToNext = result.durationMin;
+            target.travelDistanceToNext = result.distanceKm;
+            travelDiv.textContent = formatDuration(result.durationMin) + ' \u2022 ' + result.distanceKm + ' km';
+            if (result.source === 'estimate') travelDiv.textContent += ' ~';
+            currentTrip = await updateTrip(fresh.id, { stops: fresh.stops });
           });
         }
       }
