@@ -258,5 +258,8 @@
   "tripDuplicated": "Viaggio duplicato",
   "questionnaireSrc": "Fonte Questionario",
   "questionnaireSrcMsg": "URL per questionnaire.json (lascia vuoto per il default)",
-  "storageSaveError": "Salvataggio non riuscito — la memoria potrebbe essere piena"
+  "storageSaveError": "Salvataggio non riuscito — la memoria potrebbe essere piena",
+  "fixPositions": "Correggi posizioni",
+  "fixPositionsHint": "Trascina un segnaposto per correggerne la posizione",
+  "approxLocationNote": "Posizione approssimativa — trascina per correggere"
 }

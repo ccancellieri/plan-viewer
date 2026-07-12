@@ -100,6 +100,15 @@ function buildPopupContent(activity, center) {
   name.textContent = activity.name || '';
   container.appendChild(name);
 
+  // Approximate-location notice — geocoding failed for this activity, so
+  // its coordinates are the AI's guess, not a resolved address.
+  if (activity.coordSource === 'llm') {
+    const approxNote = document.createElement('div');
+    approxNote.style.cssText = 'font-size:11px;color:#8a6100;background:#fff3cd;padding:4px 8px;border-radius:6px;margin:6px 0';
+    approxNote.textContent = '📍 ' + (t('approxLocationNote') || 'Approximate location — drag to correct');
+    container.appendChild(approxNote);
+  }
+
   // Info line
   const info = document.createElement('div');
   info.style.cssText = 'font-size:12px;color:#666;margin:6px 0;line-height:1.5';
@@ -211,6 +220,10 @@ export default {
     };
     const maxDistance = mapData.maxDistance || 10;
     const activities = mapData.activities || [];
+    // Guarantee mapData.activities is this same array reference, so a
+    // later db.writeJSON(mapData) after mutating an activity in place
+    // (e.g. drag-to-correct) actually persists the change.
+    mapData.activities = activities;
 
     // Compute distance_km for each activity
     activities.forEach(act => {
@@ -227,6 +240,10 @@ export default {
 
     // Active filters
     const activeFilters = new Set();
+
+    // "Fix positions" mode — when on, activity markers are draggable so the
+    // user can correct approximate (LLM-guessed) coordinates by hand.
+    let editPositionsMode = false;
 
     // Set header title (editable)
     const titleEl = document.querySelector('#header-title');
@@ -550,7 +567,10 @@ export default {
       }
     }
 
-    function rebuildMarkers() {
+    // Rebuild activity markers. Pass fitView=false to keep the current
+    // viewport (used after a drag, so correcting one pin doesn't re-frame
+    // the whole map).
+    function rebuildMarkers(fitView = true) {
       if (!leafletMap) return;
       const L = window.L;
       leafletMarkers.forEach(m => leafletMap.removeLayer(m));
@@ -561,20 +581,45 @@ export default {
         if (activeFilters.size > 0 && !activeFilters.has(activity.category)) return;
 
         const cat = activity.category || 'other';
-        const marker = L.circleMarker([activity.lat, activity.lng], {
-          radius: 10,
-          fillColor: getCategoryColor(cat),
-          color: '#fff',
-          weight: 2,
-          fillOpacity: 0.9,
+        const catColor = getCategoryColor(cat);
+        const approx = activity.coordSource === 'llm';
+
+        const icon = L.divIcon({
+          className: 'activity-marker-icon' + (editPositionsMode ? ' activity-marker-draggable' : ''),
+          html: '<div class="activity-marker-dot' + (approx ? ' activity-marker-approx' : '') + '" style="' +
+            (approx ? 'border-color:' + catColor : 'background:' + catColor) + '"></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+          popupAnchor: [0, -10],
+        });
+
+        const marker = L.marker([activity.lat, activity.lng], {
+          icon,
+          draggable: editPositionsMode,
         }).addTo(leafletMap);
 
         const popupEl = buildPopupContent(activity, center);
         marker.bindPopup(popupEl, { autoClose: true, closeOnClick: true });
+
+        marker.on('dragend', () => {
+          const ll = marker.getLatLng();
+          activity.lat = ll.lat;
+          activity.lng = ll.lng;
+          activity.coordSource = 'manual';
+          activity.distance_km = Math.round(haversine(center.lat, center.lng, activity.lat, activity.lng) * 10) / 10;
+
+          if (!db.writeJSON('map_data_' + params.mapId, mapData)) {
+            showToast(t('storageSaveError') || 'Could not save — storage may be full');
+          }
+
+          // Restyle this marker as trustworthy and refresh its popup text.
+          rebuildMarkers(false);
+        });
+
         leafletMarkers.push(marker);
       });
 
-      if (leafletMarkers.length > 0) {
+      if (fitView && leafletMarkers.length > 0) {
         const group = L.featureGroup(leafletMarkers);
         const bounds = group.getBounds();
         bounds.extend([center.lat, center.lng]);
@@ -642,6 +687,32 @@ export default {
       },
     });
     new RecenterControl().addTo(leafletMap);
+
+    // Fix-positions toggle — lets the user drag any activity marker to
+    // correct its coordinates. Off by default so an accidental drag never
+    // moves a pin; the button is an explicit opt-in, not a hidden gesture.
+    const PositionEditControl = L.Control.extend({
+      options: { position: 'bottomright' },
+      onAdd() {
+        const btn = L.DomUtil.create('button', 'position-edit-control');
+        btn.title = t('fixPositions') || 'Fix positions';
+        btn.setAttribute('aria-label', t('fixPositions') || 'Fix positions');
+        btn.setAttribute('aria-pressed', 'false');
+        btn.textContent = '📌';
+        L.DomEvent.on(btn, 'click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          editPositionsMode = !editPositionsMode;
+          btn.classList.toggle('active', editPositionsMode);
+          btn.setAttribute('aria-pressed', String(editPositionsMode));
+          if (editPositionsMode) {
+            showToast(t('fixPositionsHint') || 'Drag any marker to correct its location');
+          }
+          rebuildMarkers(false);
+        });
+        return btn;
+      },
+    });
+    new PositionEditControl().addTo(leafletMap);
 
     leafletMap.on('click', () => leafletMap.closePopup());
 
