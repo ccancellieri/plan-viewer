@@ -12,7 +12,7 @@ const LANG_NAMES = {
 
 const ACTIVITY_FIELDS = [
   'name', 'category', 'description', 'date', 'time_start', 'time_end',
-  'cost', 'address', 'lat', 'lng', 'contact', 'source_url',
+  'cost', 'venue', 'address', 'lat', 'lng', 'contact', 'source_url',
 ];
 
 const SYSTEM_PROMPT_BASE = `You are a local leisure-activity planner. Return ONLY a valid JSON array (no markdown, no explanation, no wrapping object).
@@ -24,11 +24,13 @@ Rules:
 - "date" must be YYYY-MM-DD
 - "time_start" and "time_end" must be HH:MM (24 h)
 - "cost" is a string like "Free", "€5", "€10-15"
-- "lat" and "lng" are numeric (float) with at least 4 decimal places for accuracy
-- IMPORTANT: Coordinates must point to the ACTUAL location on land, not in water. For coastal/promontory towns, double-check that lat/lng fall on the correct side of the coastline. Prefer coordinates of the specific venue, street, or landmark rather than approximate area centers.
+- "venue" is the real, physical place the activity happens at, named in the LOCAL language exactly as it is signposted and as OpenStreetMap tags it — "Musei Vaticani", not "Vatican Museums". Every activity must have one: if it is not tied to a single named business, anchor it to the nearest real named landmark, square, street, park or neighbourhood ("Gianicolo", "Piazza Navona"). Never invent a venue that does not exist.
+- "address" is the venue's street address in the local language, with house number where one exists ("Viale Vaticano 6, Roma"). Leave it empty only when the venue genuinely has none, such as a park or a viewpoint.
+- "lat" and "lng" are numeric (float) with at least 4 decimal places, and must be the coordinates of that venue — not of the city or the neighbourhood it sits in.
+- IMPORTANT: Coordinates must point to the ACTUAL location on land, not in water. For coastal/promontory towns, double-check that lat/lng fall on the correct side of the coastline.
 - "category" must be one of: music, games, outdoor, culture, food, sport, market, festival, other
 - Do NOT include any text outside the JSON array
-- IMPORTANT: Write ALL text fields (name, description, cost) in {LANG}. Only date/time/lat/lng/category stay in their fixed format.`;
+- IMPORTANT: Write ALL text fields (name, description, cost) in {LANG}. "venue" and "address" stay in the local language of the place, and date/time/lat/lng/category keep their fixed format.`;
 
 function buildUserPromptBody(city, dateStart, dateEnd, centerName, interests, prefs) {
   const lines = [];

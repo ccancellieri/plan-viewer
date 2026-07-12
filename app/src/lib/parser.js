@@ -1,6 +1,8 @@
 // Copyright 2026 Carlo Cancellieri
 // All rights reserved. Proprietary license.
 
+import { toLat, toLng } from './geo.js';
+
 /**
  * Attempt to repair a truncated JSON string (e.g. from a cut-off LLM response).
  * Walks the string tracking brace/bracket depth, string state and escapes,
@@ -126,6 +128,22 @@ export function parseActivities(text, dateStart, dateEnd) {
   }
 
   if (!Array.isArray(parsed)) return [];
+
+  // Coordinates arrive as free-form model output, so they can be strings, out of
+  // range, or nonsense. Coerce them to numbers and drop the pair outright when
+  // either half is unusable, rather than let it reach the map.
+  parsed.forEach((a) => {
+    if (!a || typeof a !== 'object') return;
+    const lat = toLat(a.lat);
+    const lng = toLng(a.lng);
+    if (lat === null || lng === null) {
+      delete a.lat;
+      delete a.lng;
+    } else {
+      a.lat = lat;
+      a.lng = lng;
+    }
+  });
 
   // Filter by date range if provided
   if (dateStart && dateEnd) {
