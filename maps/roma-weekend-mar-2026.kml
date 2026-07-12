@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Weekend a Roma - 21-22 Marzo 2026</name>
+    <description>Generato da Leisure Planner</description>
+    <Placemark>
+      <name>📌 Piazza dei Re di Roma (Partenza)</name>
+      <description>Punto di partenza</description>
+      <Style>
+        <IconStyle>
+          <color>ff0000ff</color>
+          <scale>1.2</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/red-stars.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.5088,41.8808,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🎉 Romadiffusa Festival - San Lorenzo</name>
+      <description><![CDATA[📅 2026-03-21
+🕐 11:00-20:00
+💰 Gratuito
+📏 2.1km da Piazza dei Re di Roma
+📞 romadiffusa.com
+📍 Quartiere San Lorenzo, Roma
+
+Festival culturale itinerante con open studio, mostre, performance, workshop e tour guidati. Oltre 50 spazi tra studi d'artista e gallerie con aperture straordinarie.
+
+Info: https://www.romeing.it/it/romadiffusa-festival-san-lorenzo/]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/pink-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.5153,41.8986,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🎲 La Pace del Cervello - Giochi da Tavolo</name>
+      <description><![CDATA[📅 2026-03-21
+🕐 12:00-23:00
+💰 Solo consumazione
+📏 1.1km da Piazza dei Re di Roma
+📞 06 7005173
+📍 Via dei Santi Quattro, 62/63, Roma
+
+Locale storico dal 1980 con oltre 50 giochi da tavolo. Pranzo, aperitivo o cena giocando con vista Colosseo. Ideale per pomeriggio in compagnia.
+
+Info: https://www.lapacedelcervello.com]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/purple-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.4983,41.8874,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🎵 Polifonie dal Mondo - Spin Time Labs</name>
+      <description><![CDATA[📅 2026-03-21
+🕐 20:00-22:00
+💰 Ingresso con sottoscrizione (basso costo)
+📏 0.9km da Piazza dei Re di Roma
+📞 spintimelabs.it
+📍 Via Santa Croce in Gerusalemme, 55, Roma
+
+Coro a cappella Goccia di Voci It: polifonie tradizionali da Medio Oriente, Nord Africa, Mediterraneo, Europa dell'Est. Musiche del mondo in chiave contemporanea.
+
+Info: https://www.romatoday.it/eventi/polifonie-dal-mondo-a-spin-time-labs-21-marzo-2026.html]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/red-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.5132,41.8878,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🎵 Bebop Jazz Club - Live Jazz</name>
+      <description><![CDATA[📅 2026-03-21
+🕐 21:00-01:00
+💰 Gratuito per soci (tessera annuale)
+📏 2.8km da Piazza dei Re di Roma
+📞 bebopjazzclub.com
+📍 Via Giuseppe Giulietti, 14, Roma (Testaccio)
+
+Jazz club storico con concerti di jazzisti romani e internazionali. Serate swing e Big Band. Accesso gratuito per i soci (tessera annuale a basso costo).
+
+Info: https://www.cosafarearoma.it/jazz-club-roma/]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/red-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.4756,41.8744,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🎨 Giornate FAI di Primavera</name>
+      <description><![CDATA[📅 2026-03-22
+🕐 10:00-18:00
+💰 Contributo libero
+📏 1.7km da Piazza dei Re di Roma
+📞 fondoambiente.it
+📍 Vari siti a Roma (controllare fondoambiente.it)
+
+Apertura straordinaria di luoghi normalmente chiusi al pubblico. Villa Lante al Gianicolo, Palazzo Corrodi, Villa Spada e altri. Contributo libero suggerito.
+
+Info: https://www.fondoambiente.it]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/blu-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.4922,41.8902,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🎉 Romadiffusa Festival - San Lorenzo (Giorno 2)</name>
+      <description><![CDATA[📅 2026-03-22
+🕐 11:00-20:00
+💰 Gratuito
+📏 2.1km da Piazza dei Re di Roma
+📞 romadiffusa.com
+📍 Quartiere San Lorenzo, Roma
+
+Secondo giorno del festival. Mostre diffuse, street art tour, workshop e aperture speciali alla Fondazione Pastificio Cerere.
+
+Info: https://www.romeing.it/it/romadiffusa-festival-san-lorenzo/]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/pink-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.5153,41.8986,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🎲 La Pace del Cervello - Giochi da Tavolo (Domenica)</name>
+      <description><![CDATA[📅 2026-03-22
+🕐 12:00-23:00
+💰 Solo consumazione
+📏 1.1km da Piazza dei Re di Roma
+📞 06 7005173
+📍 Via dei Santi Quattro, 62/63, Roma
+
+Stesso posto, perfetto per la domenica pomeriggio. Oltre 50 giochi disponibili, atmosfera familiare.
+
+Info: https://www.lapacedelcervello.com]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/purple-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.4983,41.8874,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>🌳 Passeggiata al Parco degli Acquedotti</name>
+      <description><![CDATA[📅 2026-03-22
+🕐 12:00-18:00
+💰 Gratuito
+📏 4.3km da Piazza dei Re di Roma
+📍 Via Lemonia, Roma (Appio Claudio)
+
+Splendido parco con resti di acquedotti romani. Perfetto per una passeggiata o un picnic nel primo weekend di primavera. Ingresso sempre libero.]]></description>
+      <Style>
+        <IconStyle>
+          <scale>1.0</scale>
+          <Icon><href>https://maps.google.com/mapfiles/kml/paddle/grn-circle.png</href></Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>12.5503,41.8574,0</coordinates></Point>
+    </Placemark>
+  </Document>
+</kml>

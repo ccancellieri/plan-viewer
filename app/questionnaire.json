@@ -1,0 +1,83 @@
+{
+  "sections": [
+    {
+      "key": "mood",
+      "labelKey": "qMood",
+      "type": "chips",
+      "multi": true,
+      "options": [
+        { "value": "relax", "labelKey": "qMoodRelax" },
+        { "value": "adventure", "labelKey": "qMoodAdventure" },
+        { "value": "culture", "labelKey": "qMoodCulture" },
+        { "value": "nightlife", "labelKey": "qMoodNightlife" },
+        { "value": "family", "labelKey": "qMoodFamily" },
+        { "value": "romantic", "labelKey": "qMoodRomantic" },
+        { "value": "foodie", "labelKey": "qMoodFoodie" },
+        { "value": "sport", "labelKey": "qMoodSport" }
+      ]
+    },
+    {
+      "key": "time",
+      "labelKey": "qTime",
+      "type": "chips",
+      "multi": true,
+      "options": [
+        { "value": "morning", "labelKey": "qTimeMorning" },
+        { "value": "afternoon", "labelKey": "qTimeAfternoon" },
+        { "value": "evening", "labelKey": "qTimeEvening" },
+        { "value": "night", "labelKey": "qTimeNight" },
+        { "value": "all_day", "labelKey": "qTimeAllDay" }
+      ]
+    },
+    {
+      "key": "budget",
+      "labelKey": "qBudget",
+      "type": "chips",
+      "multi": false,
+      "options": [
+        { "value": "free", "labelKey": "qBudgetFree" },
+        { "value": "cheap", "labelKey": "qBudgetCheap" },
+        { "value": "medium", "labelKey": "qBudgetMedium" },
+        { "value": "any", "labelKey": "qBudgetAny" }
+      ]
+    },
+    {
+      "key": "group",
+      "labelKey": "qGroup",
+      "type": "chips",
+      "multi": false,
+      "options": [
+        { "value": "solo", "labelKey": "qGroupSolo" },
+        { "value": "couple", "labelKey": "qGroupCouple" },
+        { "value": "friends", "labelKey": "qGroupFriends" },
+        { "value": "family", "labelKey": "qGroupFamily" },
+        { "value": "large", "labelKey": "qGroupLarge" }
+      ]
+    },
+    {
+      "key": "distance",
+      "labelKey": "qDistance",
+      "type": "chips",
+      "multi": false,
+      "options": [
+        { "value": "1km", "labelKey": "qDist1" },
+        { "value": "3km", "labelKey": "qDist3" },
+        { "value": "5km", "labelKey": "qDist5" },
+        { "value": "10km", "labelKey": "qDist10" },
+        { "value": "20km", "labelKey": "qDist20" }
+      ]
+    },
+    {
+      "key": "interests",
+      "labelKey": "qSpecific",
+      "type": "text",
+      "placeholderKey": "qSpecificPlaceholder"
+    },
+    {
+      "key": "avoid",
+      "labelKey": "qAvoid",
+      "type": "text",
+      "placeholderKey": "qAvoidPlaceholder"
+    }
+  ]
+}

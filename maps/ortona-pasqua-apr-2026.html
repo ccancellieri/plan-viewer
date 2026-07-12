@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#667eea">
+<link rel="manifest" href="../manifest.json">
+<title>Ortona - Settimana Santa 2-3 Aprile 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 16px 20px; position: sticky; top: 0; z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.header h1 { font-size: 18px; font-weight: 600; }
+.header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+/* Tab bar */
+.tabs {
+  display: flex; background: white; border-bottom: 2px solid #eee;
+  position: sticky; top: 60px; z-index: 999;
+}
+.tab {
+  flex: 1; text-align: center; padding: 12px; cursor: pointer;
+  font-size: 14px; font-weight: 500; color: #666; transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+.tab.active { color: #667eea; border-bottom-color: #667eea; }
+
+/* Map */
+#map { height: 55vh; min-height: 300px; }
+
+/* Filters */
+.filters {
+  padding: 10px 16px; background: white; border-bottom: 1px solid #eee;
+  display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: 20px; font-size: 12px;
+  border: 1.5px solid #ddd; background: white; cursor: pointer;
+  white-space: nowrap; transition: all 0.2s;
+}
+.filter-chip.active { border-color: #667eea; background: #667eea; color: white; }
+.filter-chip .dot {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+}
+
+/* Cards */
+.cards { padding: 12px; display: none; }
+.card {
+  background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1); position: relative;
+}
+.card-cat {
+  position: absolute; top: 12px; right: 12px;
+  padding: 3px 8px; border-radius: 12px; font-size: 11px; color: white;
+}
+.card h3 { font-size: 16px; margin-bottom: 6px; padding-right: 80px; }
+.card .meta { font-size: 13px; color: #666; line-height: 1.6; }
+.card .meta span { display: inline-block; margin-right: 12px; }
+.card .description { font-size: 13px; color: #444; margin: 8px 0; }
+.card .actions { display: flex; gap: 8px; margin-top: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 14px; border-radius: 8px; font-size: 13px;
+  text-decoration: none; font-weight: 500; border: none; cursor: pointer;
+}
+.btn-navigate { background: #4285f4; color: white; }
+.btn-info { background: #f0f0f0; color: #333; }
+
+/* Timeline */
+.timeline { padding: 12px 16px; display: none; }
+.timeline-day { margin-bottom: 20px; }
+.timeline-day h2 { font-size: 15px; color: #667eea; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #667eea; }
+.timeline-slot { display: flex; gap: 12px; margin-bottom: 8px; }
+.timeline-time { width: 50px; text-align: right; font-size: 13px; font-weight: 600; color: #444; padding-top: 2px; flex-shrink: 0; }
+.timeline-content {
+  flex: 1; background: white; border-radius: 8px; padding: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-left: 3px solid #667eea;
+}
+.timeline-content h4 { font-size: 14px; margin-bottom: 2px; }
+.timeline-content .tl-meta { font-size: 12px; color: #888; }
+
+/* Starting point info */
+.start-info {
+  background: #fff3cd; padding: 10px 16px; font-size: 13px;
+  border-bottom: 1px solid #ffc107; display: flex; align-items: center; gap: 8px;
+}
+.start-info .pin { font-size: 18px; }
+
+/* Share button */
+.share-bar {
+  padding: 10px 16px; background: white; border-bottom: 1px solid #eee;
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+.btn-share {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px; font-size: 13px;
+  font-weight: 500; border: none; cursor: pointer;
+  text-decoration: none; color: white;
+}
+.btn-whatsapp { background: #25D366; }
+.btn-share-native { background: #667eea; }
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .header h1 { font-size: 16px; }
+  #map { height: 45vh; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Ortona - Settimana Santa 2-3 Aprile 2026</h1>
+  <div class="subtitle">📍 Centro storico &bull; 🚶 Tutto a piedi</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showView('map-view')">🗺️ Mappa</div>
+  <div class="tab" onclick="showView('cards')">📋 Lista</div>
+  <div class="tab" onclick="showView('timeline')">🕐 Timeline</div>
+</div>
+
+<div class="share-bar">
+  <button class="btn-share btn-whatsapp" onclick="shareWhatsApp()">💬 WhatsApp</button>
+  <button class="btn-share btn-share-native" onclick="shareNative()">📤 Condividi</button>
+</div>
+
+<div class="start-info">
+  <span class="pin">📌</span>
+  Punto di partenza: <strong>Centro Storico di Ortona</strong>
+</div>
+
+<div id="map-view">
+  <div class="filters" id="filters"></div>
+  <div id="map"></div>
+</div>
+
+<div class="cards" id="cards"></div>
+<div class="timeline" id="timeline"></div>
+
+<script>
+const ACTIVITIES = [
+  {
+    "name": "Passeggiata al Castello Aragonese",
+    "category": "culture",
+    "description": "Fortezza affacciata sul mare, simbolo di Ortona. Passeggiata panoramica sulle mura con vista sul porto e sulla costa. Perfetto al tramonto.",
+    "date": "2026-04-02",
+    "time_start": "18:00",
+    "time_end": "20:00",
+    "cost": "Gratuito",
+    "address": "Largo Castello, Ortona",
+    "lat": 42.3537,
+    "lng": 14.4028,
+    "contact": "",
+    "source_url": "https://www.idealista.it/news/vacanze/mete-turistiche/2023/08/31/175285-cosa-vedere-a-ortona-centro-storico-spiagge-dintorni",
+    "transport_note": "Nel centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.2
+  },
+  {
+    "name": "Cattedrale di San Tommaso Apostolo",
+    "category": "culture",
+    "description": "Duomo di Ortona, custodisce le reliquie di San Tommaso. Durante la Settimana Santa ospita celebrazioni solenni. Messa in Coena Domini il Giovedi Santo alle 18:00.",
+    "date": "2026-04-02",
+    "time_start": "18:00",
+    "time_end": "19:30",
+    "cost": "Gratuito",
+    "address": "Piazza San Tommaso, Ortona",
+    "lat": 42.3545,
+    "lng": 14.4050,
+    "contact": "",
+    "source_url": "https://www.abruzzonews.eu/ortona-settimana-santa-2026-passio-christi-685986.html",
+    "transport_note": "Centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.1
+  },
+  {
+    "name": "Aperitivo allo Yacht Bar",
+    "category": "food",
+    "description": "Locale sul porto turistico di Ortona, ideale per un aperitivo serale con vista mare. Cocktail e bollicine. Tappa classica per ortonesi e visitatori.",
+    "date": "2026-04-02",
+    "time_start": "19:30",
+    "time_end": "22:00",
+    "cost": "Basso costo (aperitivo)",
+    "address": "Porto turistico Marina di Ortona",
+    "lat": 42.3520,
+    "lng": 14.4095,
+    "contact": "",
+    "source_url": "https://www.viviortona.it/aperitivo-a-ortona.asp",
+    "transport_note": "~10 min a piedi dal centro",
+    "verified": false,
+    "distance_km": 0.6
+  },
+  {
+    "name": "Elisir dell'Apostolo - Cocktail Bar",
+    "category": "food",
+    "description": "Bistrot e cocktail bar nel cuore del centro storico. Drink creativi, vini selezionati e proposte gastronomiche leggere. Atmosfera intima e curata.",
+    "date": "2026-04-02",
+    "time_start": "19:00",
+    "time_end": "23:00",
+    "cost": "Basso costo",
+    "address": "Centro storico, Ortona",
+    "lat": 42.3548,
+    "lng": 14.4042,
+    "contact": "",
+    "source_url": "https://www.localipescara.it/ortona/caffetteria-elisir-dellapostolo-caffetteria-bistrot-cocktail-bar-ortona/",
+    "transport_note": "Centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.1
+  },
+  {
+    "name": "Passeggiata Orientale con vista mare",
+    "category": "outdoor",
+    "description": "Passeggiata panoramica lungo il lato orientale del centro storico, con affaccio sul mare Adriatico. Particolarmente suggestiva la sera.",
+    "date": "2026-04-02",
+    "time_start": "20:00",
+    "time_end": "21:30",
+    "cost": "Gratuito",
+    "address": "Passeggiata Orientale, Ortona",
+    "lat": 42.3540,
+    "lng": 14.4070,
+    "contact": "",
+    "source_url": "https://www.idealista.it/news/vacanze/mete-turistiche/2023/08/31/175285-cosa-vedere-a-ortona-centro-storico-spiagge-dintorni",
+    "transport_note": "Centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.3
+  },
+  {
+    "name": "Ascolto del Miserere - Cattedrale",
+    "category": "music",
+    "description": "Ascolto solenne del Miserere nella Cattedrale di San Tommaso Apostolo. Momento musicale e spirituale molto sentito dalla comunita ortonese.",
+    "date": "2026-04-03",
+    "time_start": "12:00",
+    "time_end": "13:00",
+    "cost": "Gratuito",
+    "address": "Cattedrale di San Tommaso, Ortona",
+    "lat": 42.3545,
+    "lng": 14.4050,
+    "contact": "",
+    "source_url": "https://www.abruzzonews.eu/ortona-settimana-santa-2026-passio-christi-685986.html",
+    "transport_note": "Centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.1
+  },
+  {
+    "name": "Le Tre Ore di Agonia",
+    "category": "culture",
+    "description": "Celebrazione del Venerdi Santo nella parrocchia di Santa Maria delle Grazie. Rito tradizionale molto partecipato.",
+    "date": "2026-04-03",
+    "time_start": "13:30",
+    "time_end": "15:00",
+    "cost": "Gratuito",
+    "address": "Parrocchia Santa Maria delle Grazie, Ortona",
+    "lat": 42.3565,
+    "lng": 14.4025,
+    "contact": "",
+    "source_url": "https://www.chietitoday.it/eventi/settimana-santa-ortona-calendario-eventi.html",
+    "transport_note": "Centro storico, a piedi",
+    "verified": true,
+    "distance_km": 0.3
+  },
+  {
+    "name": "Processione della Desolata e del Cristo Morto",
+    "category": "festival",
+    "description": "Doppio appuntamento con la processione della Desolata e quella del Cristo Morto e della Beata Vergine Maria Addolorata. Evento centrale della Settimana Santa ortonese, con accompagnamento musicale della banda. Partenza dalla parrocchia di Santa Maria delle Grazie, attraversa il centro storico. Evento gratuito, molto suggestivo e partecipato.",
+    "date": "2026-04-03",
+    "time_start": "20:00",
+    "time_end": "23:00",
+    "cost": "Gratuito",
+    "address": "Partenza: Parrocchia Santa Maria delle Grazie, Ortona",
+    "lat": 42.3565,
+    "lng": 14.4025,
+    "contact": "Associazione Passio Christi",
+    "source_url": "https://www.chietitoday.it/eventi/settimana-santa-ortona-calendario-eventi.html",
+    "transport_note": "Centro storico, tutto a piedi",
+    "verified": true,
+    "distance_km": 0.3
+  }
+];
+const CATEGORIES = {"music": {"color": "#e74c3c", "icon": "🎵", "label": "Musica"}, "games": {"color": "#9b59b6", "icon": "🎲", "label": "Giochi"}, "outdoor": {"color": "#27ae60", "icon": "🌳", "label": "Outdoor"}, "culture": {"color": "#3498db", "icon": "🎨", "label": "Cultura"}, "food": {"color": "#f39c12", "icon": "🍕", "label": "Cibo / Locali"}, "sport": {"color": "#1abc9c", "icon": "⚽", "label": "Sport"}, "market": {"color": "#e67e22", "icon": "🛍️", "label": "Mercato"}, "festival": {"color": "#e91e63", "icon": "🎉", "label": "Evento / Processione"}, "other": {"color": "#95a5a6", "icon": "📍", "label": "Altro"}};
+const CENTER = { lat: 42.3548, lng: 14.4042, name: "Centro Storico di Ortona" };
+const MAX_DIST = 1.0;
+
+let map, markers = [], activeFilters = new Set();
+
+function initMap() {
+  map = L.map('map').setView([CENTER.lat, CENTER.lng], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  const startIcon = L.divIcon({
+    html: '<div style="font-size:28px;text-shadow:0 2px 4px rgba(0,0,0,0.3)">📌</div>',
+    iconSize: [28, 28], iconAnchor: [14, 28], className: ''
+  });
+  L.marker([CENTER.lat, CENTER.lng], { icon: startIcon })
+    .addTo(map)
+    .bindPopup('<strong>' + CENTER.name + '</strong><br><em>Punto di partenza</em>');
+
+  L.circle([CENTER.lat, CENTER.lng], {
+    radius: MAX_DIST * 1000, color: '#667eea', fillColor: '#667eea',
+    fillOpacity: 0.05, weight: 1.5, dashArray: '5,5'
+  }).addTo(map);
+
+  addActivityMarkers();
+  buildFilters();
+}
+
+function addActivityMarkers() {
+  markers.forEach(m => map.removeLayer(m.marker));
+  markers = [];
+
+  ACTIVITIES.forEach((act, i) => {
+    if (activeFilters.size > 0 && !activeFilters.has(act.category)) return;
+
+    const cat = CATEGORIES[act.category] || CATEGORIES.other;
+    const icon = L.divIcon({
+      html: '<div style="font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">' + cat.icon + '</div>',
+      iconSize: [22, 22], iconAnchor: [11, 22], className: ''
+    });
+
+    const gmapsUrl = 'https://www.google.com/maps/dir/?api=1'
+      + '&origin=' + CENTER.lat + ',' + CENTER.lng
+      + '&destination=' + act.lat + ',' + act.lng
+      + '&travelmode=walking';
+
+    const popup = `
+      <div style="min-width:200px;max-width:280px">
+        <div style="background:${cat.color};color:white;padding:4px 8px;border-radius:6px 6px 0 0;margin:-8px -18px 8px -18px;font-size:11px">
+          ${cat.icon} ${cat.label}
+        </div>
+        <strong style="font-size:14px">${act.name}</strong>
+        <div style="font-size:12px;color:#666;margin:6px 0;line-height:1.5">
+          📅 ${act.date || 'N/D'}<br>
+          🕐 ${act.time_start || '?'}${act.time_end ? ' - ' + act.time_end : ''}<br>
+          💰 ${act.cost || 'N/D'}<br>
+          📏 ${act.distance_km} km da ${CENTER.name}<br>
+          ${act.contact ? '📞 ' + act.contact + '<br>' : ''}
+          ${act.address ? '📍 ' + act.address + '<br>' : ''}
+        </div>
+        ${act.description ? '<div style="font-size:12px;color:#444;margin:6px 0">' + act.description + '</div>' : ''}
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <a href="${gmapsUrl}" target="_blank"
+            style="background:#4285f4;color:white;padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+            🧭 Naviga (a piedi)
+          </a>
+          ${act.source_url ? '<a href="' + act.source_url + '" target="_blank" style="background:#f0f0f0;color:#333;padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none">ℹ️ Info</a>' : ''}
+        </div>
+      </div>`;
+
+    const marker = L.marker([act.lat, act.lng], { icon }).addTo(map).bindPopup(popup);
+    markers.push({ marker, activity: act });
+  });
+
+  if (markers.length > 0) {
+    const bounds = L.latLngBounds(markers.map(m => m.marker.getLatLng()));
+    bounds.extend([CENTER.lat, CENTER.lng]);
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }
+}
+
+function buildFilters() {
+  const container = document.getElementById('filters');
+  const cats = [...new Set(ACTIVITIES.map(a => a.category))];
+
+  const allChip = document.createElement('div');
+  allChip.className = 'filter-chip active';
+  allChip.textContent = 'Tutti';
+  allChip.onclick = () => {
+    activeFilters.clear();
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    allChip.classList.add('active');
+    addActivityMarkers();
+    renderCards();
+  };
+  container.appendChild(allChip);
+
+  cats.forEach(cat => {
+    const cfg = CATEGORIES[cat] || CATEGORIES.other;
+    const chip = document.createElement('div');
+    chip.className = 'filter-chip';
+    chip.innerHTML = '<span class="dot" style="background:' + cfg.color + '"></span>' + cfg.icon + ' ' + cfg.label;
+    chip.onclick = () => {
+      if (activeFilters.has(cat)) {
+        activeFilters.delete(cat);
+        chip.classList.remove('active');
+      } else {
+        activeFilters.add(cat);
+        chip.classList.add('active');
+      }
+      document.querySelector('.filter-chip:first-child').classList.toggle('active', activeFilters.size === 0);
+      addActivityMarkers();
+      renderCards();
+    };
+    container.appendChild(chip);
+  });
+}
+
+function renderCards() {
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+
+  const filtered = activeFilters.size > 0
+    ? ACTIVITIES.filter(a => activeFilters.has(a.category))
+    : ACTIVITIES;
+
+  filtered.forEach(act => {
+    const cat = CATEGORIES[act.category] || CATEGORIES.other;
+    const gmapsUrl = 'https://www.google.com/maps/dir/?api=1'
+      + '&origin=' + CENTER.lat + ',' + CENTER.lng
+      + '&destination=' + act.lat + ',' + act.lng
+      + '&travelmode=walking';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-cat" style="background:${cat.color}">${cat.icon} ${cat.label}</div>
+      <h3>${act.name}</h3>
+      <div class="meta">
+        <span>📅 ${act.date || 'N/D'}</span>
+        <span>🕐 ${act.time_start || '?'}${act.time_end ? '-' + act.time_end : ''}</span><br>
+        <span>💰 ${act.cost || 'N/D'}</span>
+        <span>📏 ${act.distance_km}km</span>
+        ${act.contact ? '<br><span>📞 ' + act.contact + '</span>' : ''}
+        ${act.address ? '<br><span>📍 ' + act.address + '</span>' : ''}
+      </div>
+      ${act.description ? '<div class="description">' + act.description + '</div>' : ''}
+      <div class="actions">
+        <a href="${gmapsUrl}" target="_blank" class="btn btn-navigate">🧭 Naviga</a>
+        ${act.source_url ? '<a href="' + act.source_url + '" target="_blank" class="btn btn-info">ℹ️ Dettagli</a>' : ''}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timeline');
+  container.innerHTML = '';
+
+  const byDate = {};
+  ACTIVITIES.forEach(act => {
+    const date = act.date || 'Data non specificata';
+    if (!byDate[date]) byDate[date] = [];
+    byDate[date].push(act);
+  });
+
+  Object.keys(byDate).sort().forEach(date => {
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'timeline-day';
+
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayName = date !== 'Data non specificata'
+      ? dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+      : date;
+
+    dayDiv.innerHTML = '<h2>' + dayName + '</h2>';
+
+    byDate[date].sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
+
+    byDate[date].forEach(act => {
+      const cat = CATEGORIES[act.category] || CATEGORIES.other;
+      const slot = document.createElement('div');
+      slot.className = 'timeline-slot';
+      slot.innerHTML = `
+        <div class="timeline-time">${act.time_start || '?'}</div>
+        <div class="timeline-content" style="border-left-color:${cat.color}">
+          <h4>${cat.icon} ${act.name}</h4>
+          <div class="tl-meta">
+            💰 ${act.cost || 'N/D'} &bull;
+            📏 ${act.distance_km}km &bull;
+            📍 ${act.address || 'N/D'}
+          </div>
+        </div>`;
+      dayDiv.appendChild(slot);
+    });
+
+    container.appendChild(dayDiv);
+  });
+}
+
+function showView(viewId) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active',
+      (viewId === 'map-view' && i === 0) ||
+      (viewId === 'cards' && i === 1) ||
+      (viewId === 'timeline' && i === 2)
+    );
+  });
+
+  document.getElementById('map-view').style.display = viewId === 'map-view' ? 'block' : 'none';
+  document.getElementById('cards').style.display = viewId === 'cards' ? 'block' : 'none';
+  document.getElementById('timeline').style.display = viewId === 'timeline' ? 'block' : 'none';
+
+  if (viewId === 'map-view') setTimeout(() => map.invalidateSize(), 100);
+  if (viewId === 'cards') renderCards();
+  if (viewId === 'timeline') renderTimeline();
+}
+
+function buildShareText() {
+  const title = document.querySelector('.header h1').textContent;
+  let text = '🗺️ ' + title + '\n';
+  text += '📌 Da: ' + CENTER.name + '\n\n';
+
+  const byDate = {};
+  ACTIVITIES.forEach(act => {
+    const d = act.date || 'TBD';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(act);
+  });
+
+  Object.keys(byDate).sort().forEach(date => {
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayLabel = date !== 'TBD'
+      ? dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+      : 'Data da definire';
+    text += '📅 ' + dayLabel + '\n';
+
+    byDate[date].sort((a, b) => (a.time_start || '').localeCompare(b.time_start || ''));
+    byDate[date].forEach(act => {
+      const cat = CATEGORIES[act.category] || CATEGORIES.other;
+      text += cat.icon + ' ' + act.name;
+      if (act.time_start) text += ' (' + act.time_start + (act.time_end ? '-' + act.time_end : '') + ')';
+      text += '\n';
+      if (act.cost) text += '   💰 ' + act.cost + '\n';
+      if (act.address) text += '   📍 ' + act.address + '\n';
+      const gmUrl = 'https://maps.google.com/?q=' + act.lat + ',' + act.lng;
+      text += '   🧭 ' + gmUrl + '\n';
+      text += '\n';
+    });
+  });
+
+  if (window.location.hostname && window.location.hostname !== '') {
+    text += '🔗 Mappa completa: ' + window.location.href + '\n';
+  }
+
+  return text;
+}
+
+function shareWhatsApp() {
+  const text = buildShareText();
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+}
+
+function shareNative() {
+  const text = buildShareText();
+  if (navigator.share) {
+    navigator.share({
+      title: document.querySelector('.header h1').textContent,
+      text: text
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.btn-share-native');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✅ Copiato!';
+      setTimeout(() => btn.innerHTML = orig, 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('Testo copiato!');
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  renderCards();
+  renderTimeline();
+});
+</script>
+</body>
+</html>
