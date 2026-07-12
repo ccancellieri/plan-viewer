@@ -285,6 +285,56 @@
   margin: 4px 0;
 }
 
+/* Activity markers on the map tab */
+.activity-marker-dot {
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Coordinates the geocoder couldn't resolve — the AI's best guess, shown
+   hollow + dashed (in the category colour) instead of solid so it reads as
+   unconfirmed at a glance, in both light and dark app themes. */
+.activity-marker-dot.activity-marker-approx {
+  background: rgba(255, 255, 255, 0.35);
+  border-style: dashed;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Only applied while "Fix positions" mode is on */
+.activity-marker-draggable {
+  cursor: grab;
+}
+
+.activity-marker-draggable:active {
+  cursor: grabbing;
+}
+
+/* Fix-positions toggle control (bottom-right, next to Recenter) */
+.position-edit-control {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-card, #fff);
+  color: var(--text, #333);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.position-edit-control.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* Drawing mode */
 .drawing-mode {
   cursor: crosshair !important;
